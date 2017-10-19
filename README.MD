@@ -11,5 +11,5 @@ to unite in order to be conquered.
 
 ## About OARS
 [Olin Aquatic Robotic Systems](https://www.olinaquabots.com/) (OARS) is a build team at [Olin College of Engineering](http://www.olin.edu/)
-in Needham, MA. We've been around in various forms since 2014, designing autonomous sailboats as well as boats for the
+in Needham, MA. We've been around in various forms since 2013, designing autonomous sailboats as well as boats for the
 [AUVSI RoboBoat competition](http://www.robonation.org/competition/roboboat).
