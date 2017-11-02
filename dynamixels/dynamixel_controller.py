@@ -8,9 +8,6 @@ from dynamixels import dynamixel_functions as dynamixel
 import time
 
 
-# os.sys.path.append('dynamixel_functions_py')             # Path setting
-
-
 class DynamixelController:
     current_position = 0
 
@@ -67,8 +64,12 @@ class DynamixelController:
         dxl_error = dynamixel.getLastRxPacketError(self.port_num, self.config.PROTOCOL_VERSION)
         if dxl_comm_result != self.config.COMM_SUCCESS:
             print(dynamixel.getTxRxResult(self.config.PROTOCOL_VERSION, dxl_comm_result))
+            return False
         elif dxl_error != 0:
             print(dynamixel.getRxPacketError(self.config.PROTOCOL_VERSION, dxl_error))
+            return False
+        # Position set successfully
+        return True
 
     def enable_torque(self):
         # Enable Dynamixel Torque
