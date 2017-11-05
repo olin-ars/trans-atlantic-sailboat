@@ -1,6 +1,5 @@
 <launch>
 
-    <!-- Launch Arbiter and Behavior Engine -->
     <node name="rc_control" pkg="oars_gdy" type="rc_neato" />
 
 </launch>

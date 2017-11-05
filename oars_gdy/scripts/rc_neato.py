@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import math
 import rospy
 from geometry_msgs.msg import Twist
@@ -25,3 +27,5 @@ class NeatoRC:
 
             r.sleep()
 
+if __name__ == '__main__':
+    NeatoRC()
