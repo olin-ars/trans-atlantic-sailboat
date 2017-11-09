@@ -1,5 +1,5 @@
 from evdev import InputDevice, categorize, ecodes
-gamepad = InputDevice('/dev/input/event17')
+gamepad = InputDevice('/dev/input/by-id/usb-Horizon_Hobby_SPEKTRUM_RECEIVER_00000000001A-event-joystick')
 
 sailDownMax = 0
 sailUpMax = 1700
