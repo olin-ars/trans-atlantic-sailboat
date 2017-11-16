@@ -119,6 +119,9 @@ include_directories(
 # include
   ${catkin_INCLUDE_DIRS}
 )
+find_package(message_generation)
+catkin_package(CATKIN_DEPENDS message_runtime)
+add_message_files(FILES Bump.msg)
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
