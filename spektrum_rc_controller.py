@@ -54,13 +54,13 @@ class SpektrumRCController:
                     position = self.normalize(event.value, 1700, 0)
                     if debug:
                         print('Setting sails to position {:0.4f}'.format(position))
-                    self.main.set_position(position)
-                    self.jib.set_position(position)
+                    self.main.set_position(position, debug)
+                    self.jib.set_position(position, debug)
                 elif event.code == 2:
                     position = self.normalize(event.value, 1700, 170)
                     if debug:
                         print('Setting rudder to position {:0.4f}'.format(position))
-                    self.rudder.set_position(int(position))
+                    self.rudder.set_position(position, debug)
                 # elif event.code == TL_TOGG:  # Use top-left toggle switch for torque control
                 #     if event.value == TOGG_DOWN:
                 #         main.enable_torque()
