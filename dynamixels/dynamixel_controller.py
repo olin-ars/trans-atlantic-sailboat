@@ -10,10 +10,6 @@ from dynamixels import dynamixel_functions as dynamixel
 
 class DynamixelController:
 
-    RUDDER = 0
-    MAIN = 1
-    JIB = 2
-
     def __init__(self, device_id, usb_device='/dev/ttyUSB0', baudrate=1000000, torque=False):
 
         self.config = DynamixelConfig()
