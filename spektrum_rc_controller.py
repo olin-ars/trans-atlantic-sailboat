@@ -1,5 +1,6 @@
 from evdev import InputDevice
-from motors.dynamixel import DynamixelMotor
+
+from dynamixels.dynamixel_motor import DynamixelMotor
 
 
 class SpektrumRCController:
