@@ -1,6 +1,9 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
+"""partial based on http://wiki.ros.org/rospy_tutorials/Tutorials/WritingPublisherSubscriber"""
 import rospy
+from geometry_msgs.msg import Vector3
 import logging
 from Adafruit_BNO055 import BNO055
 
@@ -25,5 +28,19 @@ if status == 0x01:
     print('System error: {0}'.format(error))
     print('See datasheet section 4.3.59 for the meaning.')
 
-# Read the Euler angles for heading, roll, pitch (all in degrees).
-heading, roll, pitch = bno.read_euler()
+def publish_orientation():
+	pub = rospy.Publisher('/orientation',Vector3, queue_size=0)
+	rospy.init_node('orientation', anonymous = True)
+	rate = rospy.Rate(10) # 10hz
+	while not rospy.is_shutdown():
+  		# Read the Euler angles for heading, roll, pitch (all in degrees).
+		heading, roll, pitch = bno.read_euler()
+		rospy.loginfo(Vector3(heading,roll,pitch))
+		pub.publish(Vector3(heading,roll,pitch))
+		rate.sleep()
+
+if __name__ == '__main__':
+	try:
+		publish_orientation()
+	except rospy.ROSInterruptException:
+		pass
