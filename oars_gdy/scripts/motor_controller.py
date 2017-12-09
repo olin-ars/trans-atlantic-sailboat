@@ -36,15 +36,15 @@ class MotorController:
 
     def callback_main_pos(data, debug = False):
         rospy.loginfo(rospy.get_caller_id() + "I heard %s", data.data)
-        self.main.set_position(position, debug)
+        self.main.set_position(data, debug)
 
     def callback_jib_pos(data, debug = False):
         rospy.loginfo(rospy.get_caller_id() + "I heard %s", data.data)
-        self.jib.set_position(position, debug)
+        self.jib.set_position(data, debug)
 
     def callback_rudder_pos(data, debug = False):
         rospy.loginfo(rospy.get_caller_id() + "I heard %s", data.data)
-        self.rudder.set_position(position, debug)
+        self.rudder.set_position(data, debug)
         
     def run(self, debug = False):
         """
