@@ -14,7 +14,7 @@ class NeatoSail:
         r = rospy.Rate(5)
 
         wind_angle = rospy.Subscriber("/rel_wind_vel", Int8MultiArray, self.update_wind, queue_size=5)
-        sail_angle = rospy.Subscriber("/enc", Int8MultiArray, self.update_sail, queue_size=5)
+        sail_angle = rospy.Subscriber("/encoder", Int8MultiArray, self.update_sail, queue_size=5)
         self.new_sail_pos = 0
         self.current_sail_pos = 0
 
@@ -29,8 +29,8 @@ class NeatoSail:
         self.cmd_vel.linear.z = 0
 
         while not rospy.is_shutdown():
-            rotation = (self.new_sail_pos - self.current_sail_pos) * math.pi / 180
-            print(rotation)
+            rotation = (self.new_sail_pos - self.current_sail_pos) * math.pi/ 180
+            print('Turn amount:', rotation)
             self.cmd_vel.angular.z = rotation
 
             self.cmd_pub.publish(self.cmd_vel)
@@ -39,12 +39,13 @@ class NeatoSail:
             r.sleep()
             
     def update_wind(self, msg):
-        angle = msg.data[1]
+        angle = msg.data[0]
         print(angle)
         angle = angle / 2
         if angle > 90:
-            self.new_sail_pos -= 180
-            print('Turning to:', self.new_sail_pos)
+            angle -= 180
+	self.new_sail_pos = angle
+        print('Turning to:', self.new_sail_pos)
 
     def update_sail(self, msg):
         angle = msg.data
