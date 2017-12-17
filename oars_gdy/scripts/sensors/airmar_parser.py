@@ -2,7 +2,7 @@
 import rospy
 import serial
 import sys
-from std_msgs.msg import Int16, Float32, Bool, String
+from std_msgs.msg import Int16, Float32, Bool, String, Float32MultiArray
 from geometry_msgs.msg import Pose2D, Vector3
 
 
@@ -56,11 +56,11 @@ class AirmarParser:
         # Track made good (relative to true north)
         self.track_pub = rospy.Publisher('airmar/track', Float32, queue_size=10)
         # Relative wind speed (knots) and direction
-        self.rel_wind_pub = rospy.Publisher('airmar/relative_wind', Pose2D, queue_size = 5)
+        self.rel_wind_pub = rospy.Publisher('/weather/wind/rel', Float32MultiArray, queue_size=5)
         # True wind speed and direction
-        self.true_wind_pub = rospy.Publisher('airmar/true_wind', Pose2D, queue_size = 5)
+        self.true_wind_pub = rospy.Publisher('airmar/true_wind', Pose2D, queue_size=5)
         # Compass heading? ????
-        self.magnetic_direction_pub = rospy.Publisher('airmar/magnetic_direction', Float32, queue_size=2) #NSEW
+        self.magnetic_direction_pub = rospy.Publisher('airmar/magnetic_direction', Float32, queue_size=2)  # NSEW
         # Error strings we want to see
         self.error_pub = rospy.Publisher('airmar/errors', String, queue_size=5)
         # Full message publisher for debugging
@@ -114,9 +114,8 @@ class AirmarParser:
         if msg[-1][0] == 'A':  # A = valid, V = void
             self.status = True
             if msg[2] == 'R':  # Relative wind
-                rel_wind = Pose2D()
-                rel_wind.theta = float(msg[1])  # Wind direction (knots?)
-                rel_wind.x = float(msg[3])  # Wind speed
+                rel_wind = Float32MultiArray()
+                rel_wind.data = [float(msg[3]), float(msg[1])]  # [speed (knots?), direction]
                 # Publish the wind readings
                 self.rel_wind_pub.publish(rel_wind)
             else:  # True wind ('T')
@@ -169,10 +168,10 @@ class AirmarParser:
             Parse GPVTGG message from hemisphere give us true heading, roll, pitch and heave
         """
         if msg[1] != '':
-            self.track = float(msg[1])  # True heading
-            self.speed = float(msg[5])  # Speed (knots)
-            self.track_pub.publish(self.track)
-            self.speed_pub.publish(self.speed)
+            track = float(msg[1])  # True heading
+            speed = float(msg[5])  # Speed (knots)
+            self.track_pub.publish(track)
+            self.speed_pub.publish(speed)
 
 
 if __name__ == '__main__':
