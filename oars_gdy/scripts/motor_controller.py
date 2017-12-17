@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.6
+#!/usr/bin/env python
 import rospy
 from std_msgs.msg import Float32
 from dynamixels.dynamixel_motor import DynamixelMotor

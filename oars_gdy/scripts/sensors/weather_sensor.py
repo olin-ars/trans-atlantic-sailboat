@@ -22,7 +22,7 @@ while not rospy.is_shutdown():
     number += 1
     if number > 127:
         number = 0
-        data = [number]
+    data = [number]
 
     wind_vel_msg = Int8MultiArray(data=data)
 
