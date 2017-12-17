@@ -21,7 +21,7 @@ while not rospy.is_shutdown():
     # TODO Get actual wind speed and direction from sensor
     number += 1
     if number > 127:
-	number = 0
+        number = 0
     data = [number]
 
     wind_vel_msg = Int8MultiArray(data=data)
