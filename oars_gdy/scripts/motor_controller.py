@@ -33,16 +33,34 @@ class MotorController:
         self.rudder = DynamixelMotor(self.RUDDER_PROFILE)
 
     def callback_main_pos(self, msg, debug = False):
-        rospy.loginfo(rospy.get_caller_id() + "I heard %s", msg.data)
-        self.main.set_position(msg.data, debug)
+        pos = msg.data
+        rospy.loginfo(rospy.get_caller_id() + "I heard %s", pos)
+        # Make sure the value is within the accepted range of 0 to 1
+        if pos > 1:
+            pos = 1
+        elif pos < 0:
+            pos = 0
+        self.main.set_position(pos, debug)
 
     def callback_jib_pos(self, msg, debug = False):
-        rospy.loginfo(rospy.get_caller_id() + "I heard %s", msg.data)
-        self.jib.set_position(msg.data, debug)
+        pos = msg.data
+        rospy.loginfo(rospy.get_caller_id() + "I heard %s", pos)
+        # Make sure the value is within the accepted range of 0 to 1
+        if pos > 1:
+            pos = 1
+        elif pos < 0:
+            pos = 0
+        self.jib.set_position(pos, debug)
 
     def callback_rudder_pos(self, msg, debug = False):
-        rospy.loginfo(rospy.get_caller_id() + "I heard %s", msg.data)
-        self.rudder.set_position(msg.data, debug)
+        pos = msg.data
+        rospy.loginfo(rospy.get_caller_id() + "I heard %s", pos)
+        # Make sure the value is within the accepted range of 0 to 1
+        if pos > 1:
+            pos = 1
+        elif pos < 0:
+            pos = 0
+        self.rudder.set_position(pos, debug)
         
     def run(self, debug = False):
         """

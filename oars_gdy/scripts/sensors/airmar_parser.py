@@ -35,7 +35,7 @@ $GPVTG,,,,,,,,,N*30
 
 class AirmarParser:
 
-    def __init__(self, port = "/dev/ttyUSB0"):
+    def __init__(self, port = "/dev/ttyUSB1"):
 
         # Initialize a serial connection to the Airmar
         self.serial = serial.Serial()
@@ -69,7 +69,7 @@ class AirmarParser:
         self.status = True
 
     def run(self):
-        rate = rospy.Rate(10)  # 10Hz
+        rate = rospy.Rate(100)  # 100Hz
         while not rospy.is_shutdown():
             # Read data from Airmar
             try:
@@ -131,7 +131,7 @@ class AirmarParser:
             Parses the WIMWV message containing ???
         """
         position = Pose2D()
-        position.theta = float((msg[2])[1:-2])
+        position.theta = int((msg[2])[2:-2], 16)
         # Publish the position
         self.pos_pub.publish(position)
 

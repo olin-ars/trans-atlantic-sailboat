@@ -2,56 +2,64 @@
 
 import math
 import rospy
-from geometry_msgs.msg import Twist
-from std_msgs.msg import Int8MultiArray
+from std_msgs.msg import Float32
+from std_msgs.msg import Float32MultiArray
 
 
 class NeatoSail:
+
+    MIN_SHIFT = 20
+    MAIN_MAX_ANGLE = 100
+    JIB_MAX_ANGLE = 100
+
+    main_pos = 0
+    jib_pos = 0
 
     def __init__(self):
 
         rospy.init_node('sail_control', anonymous = True)
 
-        r = rospy.Rate(5)
+        r = rospy.Rate(2)
 
-        wind_angle = rospy.Subscriber("/weather/wind/rel", Int8MultiArray, self.update_wind, queue_size=5)
-        sail_angle = rospy.Subscriber("/encoder", Int8MultiArray, self.update_sail, queue_size=5)
+        wind_angle = rospy.Subscriber("/weather/wind/rel", Float32MultiArray, self.update_wind, queue_size=5)
         self.new_sail_pos = 0
-        self.current_sail_pos = 0
 
-        rospy.spin()
+        self.main_pub = rospy.Publisher('/main_pos', Float32, queue_size=0)
+        self.jib_pub = rospy.Publisher('/jib_pos', Float32, queue_size=0)
 
-        self.cmd_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=0)
+        self.main_pos = 0
+        self.jib_pos = 0
 
-        self.cmd_vel = Twist()
-        self.cmd_vel.linear.x = 0
-        self.cmd_vel.linear.y = 0
-        self.cmd_vel.linear.z = 0
-
+        print("initialized")
         while not rospy.is_shutdown():
-            rotation = (self.new_sail_pos - self.current_sail_pos) * math.pi/ 180
-            print('Turn amount:', rotation)
-            self.cmd_vel.angular.z = rotation
-
-            self.cmd_pub.publish(self.cmd_vel)
-            print("published")
+            self.main_pub.publish(self.main_pos)
+            self.jib_pub.publish(self.jib_pos)
+            # print("published")
 
             r.sleep()
             
     def update_wind(self, msg):
         angle = msg.data[1]
-        print(angle)
-        angle = angle / 2
-        if angle > 90:
-            angle -= 180
-        self.new_sail_pos = angle
-        print('Turning to:', self.new_sail_pos)
+        print('Wind angle:', angle)
+        self.main_pos = self.calc_main_pos(angle)
+        self.jib_pos = self.calc_jib_pos(angle)
+        print('Setting main to {} and jib to {}'.format(self.main_pos, self.jib_pos))
 
-    def update_sail(self, msg):
-        angle = msg.data
-        print(angle)
-        self.current_sail_pos = angle * 180 /(math.pi*0.122)
-        print('Position:', self.current_sail_pos)
+    def calc_main_pos(self, wind_angle):
+        res = (180 - abs(180 - (wind_angle+self.MIN_SHIFT))) / self.MAIN_MAX_ANGLE
+        if res > 1:
+            res = 1
+        elif res < 0:
+            res = 0
+        return res
+
+    def calc_jib_pos(self, wind_angle):
+        res = (180 - abs(180 - (wind_angle+self.MIN_SHIFT))) / self.JIB_MAX_ANGLE
+        if res > 1:
+            res = 1
+        elif res < 0:
+            res = 0
+        return res
 
 
 if __name__ == '__main__':

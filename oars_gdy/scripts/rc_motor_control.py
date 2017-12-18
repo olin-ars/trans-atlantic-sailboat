@@ -24,6 +24,7 @@ class SpektrumRCController:
         self.main_pos = rospy.Publisher('/main_pos', Float32, queue_size=0)
         self.rudder_pos = rospy.Publisher('/rudder_pos', Float32, queue_size=0)
         print('Spectrum controller initialized.')
+
     @staticmethod
     def normalize(pos, max_pos, min_pos):
         """
@@ -31,9 +32,15 @@ class SpektrumRCController:
         :param pos: the position
         :param max_pos: the maximum of its range
         :param min_pos: the minimum of its range
-        :return: the normalized value (between 0 and 1, inclusive)
+        :return: the normalized value (between 0 and 1, inclusive). If the computed value is out of range,
+            i.e. < 0 or > 1), it will be rounded to either 0 or 1, respectively.
         """
-        return float(pos - min_pos) / float(max_pos - min_pos)
+        res = float(pos - min_pos) / float(max_pos - min_pos)
+        if res > 1:
+            res = 1
+        elif res < 0:
+            res = 0
+        return res
 
     def run(self, debug=False):
 
