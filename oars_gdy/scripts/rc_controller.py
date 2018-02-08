@@ -4,6 +4,7 @@ import rospy
 from std_msgs.msg import Float32
 from evdev import InputDevice
 
+
 class SpektrumRCController:
 
     def __init__(self, device):
@@ -64,6 +65,7 @@ class SpektrumRCController:
                         self.rudder_pos.publish(msg)
 
             self.r.sleep()
+
 
 if __name__ == '__main__':
     SpektrumRCController('/dev/input/by-id/usb-Horizon_Hobby_SPEKTRUM_RECEIVER_00000000001A-event-joystick').run()
