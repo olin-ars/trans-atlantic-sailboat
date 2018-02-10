@@ -31,6 +31,8 @@ class AirmarParser:
         # Initialize publishers
         # Boat position (lat/long where pos is N and E, neg is S and W, heading in decimal minutes)
         self.pos_pub = rospy.Publisher('/boat/position', Pose2D, queue_size=5)
+        # Boat heading (relative to true north)
+        self.heading_true_pub = rospy.Publisher('/boat/heading', Float32, queue_size=2)  # NSEW
         # Speed (in knots)
         self.true_speed_pub = rospy.Publisher('/boat/speed/true', Float32, queue_size=5)
         # Track "made good" (relative to ground and true north)
@@ -39,8 +41,6 @@ class AirmarParser:
         self.rel_wind_pub = rospy.Publisher('/weather/wind/rel', Float32MultiArray, queue_size=5)
         # True wind speed and direction
         self.true_wind_pub = rospy.Publisher('/weather/wind/true', Pose2D, queue_size=5)
-        # Boat heading (relative to true north)
-        self.heading_true_pub = rospy.Publisher('/boat/heading', Float32, queue_size=2)  # NSEW
         # Error strings we want to see
         self.error_pub = rospy.Publisher('/logging/airmar/errors', String, queue_size=5)
         # Full message publisher for debugging

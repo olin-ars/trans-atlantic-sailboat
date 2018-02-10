@@ -6,7 +6,7 @@ from std_msgs.msg import Float32
 from std_msgs.msg import Float32MultiArray
 
 
-class NeatoSail:
+class HeadingController:
 
     MIN_SHIFT = 20
     MAIN_MAX_ANGLE = 100
@@ -17,7 +17,7 @@ class NeatoSail:
 
     def __init__(self):
 
-        rospy.init_node('sail_control', anonymous = True)
+        rospy.init_node('sail_control', anonymous=True)
 
         r = rospy.Rate(2)
 
@@ -63,4 +63,4 @@ class NeatoSail:
 
 
 if __name__ == '__main__':
-    NeatoSail()
+    HeadingController()
