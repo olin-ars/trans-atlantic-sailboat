@@ -11,7 +11,7 @@ to unite in order to be conquered.
 
 ## Repository Overview
 
-![OARS code repository structure](https://imgur.com/QBnZ7js.png)
+![OARS code repository structure](https://imgur.com/28hc6pi.png)
 
 ## About OARS
 [Olin Aquatic Robotic Systems](https://www.olinaquabots.com/) (OARS) is a build team at [Olin College of Engineering](http://www.olin.edu/)
