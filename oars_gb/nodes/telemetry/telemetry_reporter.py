@@ -2,15 +2,16 @@
 
 from socketIO_client_nexus import SocketIO, BaseNamespace
 from datetime import datetime
-from time import sleep
-import json
-# import math
 import rospy
 from geometry_msgs.msg import Pose2D
 from std_msgs.msg import Float32
 
 
 class TelemetryReporter:
+    """
+    This is used to report boat and environment statistics (e.g. position, heading, wind speed & direction) to a
+    telemetry server for remote monitoring.
+    """
 
     def __init__(self):
         self.reporter = None
@@ -64,9 +65,6 @@ class ReportingNamespace(BaseNamespace):
 
     def on_connect(self):
         print('Connected to reporting')
-
-    def on_aaa_response(self, *args):
-        print('Received aaa:', args)
 
 
 if __name__ == '__main__':

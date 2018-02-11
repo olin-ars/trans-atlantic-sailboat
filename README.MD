@@ -9,6 +9,10 @@ it close, but the coast of Western Europe remains elusive to the robotic seafare
 conditions of the North Atlantic are proving to be a fierce opponent, requiring some of the best engineers in the world
 to unite in order to be conquered.
 
+## Repository Overview
+
+![OARS code repository structure](https://imgur.com/QBnZ7js.png)
+
 ## About OARS
 [Olin Aquatic Robotic Systems](https://www.olinaquabots.com/) (OARS) is a build team at [Olin College of Engineering](http://www.olin.edu/)
 in Needham, MA. We've been around in various forms since 2013, designing autonomous sailboats as well as boats for the
