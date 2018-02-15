@@ -9,40 +9,74 @@ from std_msgs.msg import Float32MultiArray
 
 class HeadingController():
 
-    MIN_SHIFT = 20
-    MAIN_MAX_ANGLE = 100
-    JIB_MAX_ANGLE = 100
+    def __init__(self, verbose=False):
 
-    main_pos = 0
-    jib_pos = 0
-
-    def __init__(self):
+        self.verbose = verbose
 
         #   Establish ROS node and create topics
         rospy.init_node('sail_control', anonymous=True)
         self.rudder_pub = rospy.Publisher('/rudder_pos', Float32, queue_size=1)
-        self.current_heading = rospy.Subscriber("/boat/heading", Float32, queue_size=2)
+        rospy.Subscriber("/boat/heading", Float32, self.process_current_heading, queue_size=2)
         #   TODO make publisher to publish a target heading
-        self.target_heading = rospy.Subscriber("/control/target_heading", Float32, queue_size=1)
+        rospy.Subscriber("/control/target_heading", Float32, self.process_target_heading, queue_size=1)
 
         #   Subscribers for PI control constants
         #   TODO make controller to publish these values
-        self.p_term = rospy.Subscriber("/control/p", Float32, queue_size=1)
-        self.i_term = rospy.Subscriber("/control/i", Float32, queue_size=1)
+        rospy.Subscriber("/control/p", Float32, self.process_p, queue_size=1)
+        rospy.Subscriber("/control/i", Float32, self.process_i, queue_size=1)
 
         #   Set initial conditions
-        r = rospy.Rate(2)
-        self.rudder_pos = 0
+        r = rospy.Rate(5)
         self.heading_integral = 0   #   To be multiplied by I term
         self.current_time = time.time() #   Used in integral calculation
 
-        print("Heading controller initialized.")
+        #   Set subscriber constants to None while no messages recieved yet
+        self.p_term = None
+        self.i_term = None
+        self.current_heading = None
+        self.target_heading = None
+
+        if self.verbose:
+            print("Heading controller initialized.")
 
         #   Main loop
         while not rospy.is_shutdown():
-            self.rudder_pub.publish(calculate_rudder_pos())
+
+            #   Only start publishing rudder positions if all other nodes
+            #   are being published to
+            if all([self.p_term, self.i_term,
+                self.current_heading, self.target_heading]):
+
+                #   Publish PI-controlled rudder position
+                rudder_pos = self.calculate_rudder_pos()
+                self.rudder_pub.publish(rudder_pos)
+
+                if self.verbose:
+                    print("Target rudder position: %s" % rudder_pos)
+                    print("Target heading: %s   Current heading: %s" % \
+                        (self.target_heading, self.current_heading))
 
             r.sleep()
+
+
+    def process_target_heading(self, msg):
+        """ Update target heading every time subscriber is updated """
+        self.target_heading = msg.data
+
+
+    def process_i(self, msg):
+        """ Update i term every time subscriber is updated """
+        self.i_term = msg.data
+
+
+    def process_p(self, msg):
+        """ Update p term every time subscriber is updated """
+        self.p_term = msg.data
+
+
+    def process_current_heading(self, msg):
+        """ Update current heading every time subscriber is updated """
+        self.current_heading = msg.data
 
 
     def angle_diff(self, ref_angle, target_angle):
@@ -54,9 +88,7 @@ class HeadingController():
                 -180 and 180.
         """
 
-        #   Range of potential angles - e.g. 360
         a_scale = 360
-
         differences = [target_angle - ref_angle,
             target_angle + a_scale - ref_angle,
             target_angle - ref_angle - a_scale]
@@ -71,12 +103,12 @@ class HeadingController():
         """
 
         #   Calculate the difference from your desired heading
-        heading_difference = self.angle_diff(self.heading, self.target_heading)
+        heading_difference = self.angle_diff(self.current_heading, self.target_heading)
         p = self.p_term
         i = self.i_term
 
         #   Update the heading integral based on the time that has passed
-        dt = self.current_time - time.time()
+        dt = time.time() - self.current_time
         self.current_time = time.time()
         self.heading_integral += heading_difference*dt
 
@@ -84,4 +116,4 @@ class HeadingController():
 
 
 if __name__ == '__main__':
-    HeadingController()
+    HeadingController(verbose=True)
