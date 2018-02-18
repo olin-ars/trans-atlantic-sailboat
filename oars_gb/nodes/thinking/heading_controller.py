@@ -44,8 +44,8 @@ class HeadingController():
 
             #   Only start publishing rudder positions if all other nodes
             #   are being published to
-            if all([self.p_term, self.i_term,
-                self.current_heading, self.target_heading]):
+            if not None in [self.p_term, self.i_term,
+                self.current_heading, self.target_heading]:
 
                 #   Publish PI-controlled rudder position
                 rudder_pos = self.calculate_rudder_pos()
@@ -55,6 +55,9 @@ class HeadingController():
                     print("Target rudder position: %s" % rudder_pos)
                     print("Target heading: %s   Current heading: %s" % \
                         (self.target_heading, self.current_heading))
+
+            elif self.verbose:
+                print [self.p_term, self.i_term, self.current_heading, self.target_heading]
 
             r.sleep()
 

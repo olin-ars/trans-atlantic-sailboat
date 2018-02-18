@@ -20,8 +20,10 @@ class DynamixelMotor:
         Moves the motor to the specified position.
         :param pos: a normalized (between 0 and 1, inclusive) position
         """
+        pos = max(pos, 0)
+        pos = min(pos, 1)
         posrange = pos * self.range
         pos = posrange + self.min
-        if debug:
-            print('Setting Dynamixel {} with posrange {} to position {}'.format(self.id, posrange, pos))
+        # if debug:
+        print('Setting Dynamixel {} with posrange {} to position {}'.format(self.id, posrange, pos))
         self.motor.set_position(int(pos))

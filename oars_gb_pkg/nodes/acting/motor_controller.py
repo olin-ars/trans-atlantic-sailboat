@@ -26,11 +26,12 @@ class MotorController:
         """
         Initialize the motors.
         """
-        
+
         # Initialize the motors
         self.main = DynamixelMotor(self.MAIN_PROFILE)
         self.jib = DynamixelMotor(self.JIB_PROFILE)
         self.rudder = DynamixelMotor(self.RUDDER_PROFILE)
+        print('Initialized motor controller node')
 
     def callback_main_pos(self, msg, debug = False):
         pos = msg.data
@@ -61,7 +62,7 @@ class MotorController:
         elif pos < 0:
             pos = 0
         self.rudder.set_position(pos, debug)
-        
+
     def run(self, debug = False):
         """
         Create ROS node named motorcontroller, which subscribes to desired sail position topics and sets the sails accordingly
