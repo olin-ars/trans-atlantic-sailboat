@@ -70,7 +70,61 @@ class WaypointGenerator:
         return change_x, change_y
 
 
+    def cell_coord_to_GPS_coord(self, coord, p1, p2, cols, rows):
+        """
+        Converts cell coordinates to GPS cordinates
+
+        coord: tuple of cell coordinate
+        p1: bottom left coordinate position
+        p2: top right coordinate position
+        rows: number of rows
+        cols: number of columns
+
+        returns: tuple of GPS cordinate
+
+        Examples:
+        >>> WaypointGenerator().cell_coord_to_GPS_coord((1, 2), (10, 20), (13, 23), 3, 3)
+        (11.5, 22.5)
+        >>> WaypointGenerator().cell_coord_to_GPS_coord((1, 2), (10.5, 20.5), (13.5, 23.5), 3, 3)
+        (12.0, 23.0)
+        >>> WaypointGenerator().cell_coord_to_GPS_coord((1, 3), (10, 70), (40, 134), 3, 4)
+        (25.0, 126.0)
+        >>> WaypointGenerator().cell_coord_to_GPS_coord((3, 2), (-2, 3), (3, 7), 5, 4)
+        (1.5, 5.5)
+        >>> WaypointGenerator().cell_coord_to_GPS_coord((2, 5), (-2, -4), (4, 3), 5, 8)
+        (0.5, 1.5)
+        """
+
+        p1_x, p1_y = p1
+        p2_x, p2_y = p2
+        # print("p1:", p1)
+        # print("p2:", p2)
+
+        dx = p2_x - p1_x
+        dy = p2_y - p1_y
+        # print("dx:", dx)
+        # print("dy:", dy)
+
+        row_width = dy / rows
+        col_width = dx / cols
+        # print(row_width, col_width)
+
+        x_val, y_val = coord
+        # print("coord:", coord)
+
+        dx_GPS_pos = (col_width * x_val) + (0.5 * col_width)
+        dy_GPS_pos = (row_width * y_val) + (0.5 * row_width)
+        # print("change in x:", dx_GPS_pos)
+        # print("change in y:", dy_GPS_pos)
+
+        x_GPS_coord = p1_x + dx_GPS_pos
+        y_GPS_coord = p1_y + dy_GPS_pos
+        # print("x_GPS:", x_GPS_coord)
+        # print("y_GPS:", y_GPS_coord)
+
+        return x_GPS_coord, y_GPS_coord
+
 if __name__ == "__main__":
     import doctest
     #doctest.testmod()
-    doctest.run_docstring_examples(WaypointGenerator().make_waypoints, globals(), verbose=True)
+    doctest.run_docstring_examples(WaypointGenerator().cell_coord_to_GPS_coord, globals(), verbose=True)
