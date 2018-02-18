@@ -112,7 +112,13 @@ class HeadingController():
         self.current_time = time.time()
         self.heading_integral += heading_difference*dt
 
-        return p*heading_difference + i*self.heading_integral
+        output = p*heading_difference + i*self.heading_integral
+
+        #   limit output to range between 0 and 1
+        output = min(output, 1)
+        output = max(output, -1)
+
+        return output
 
 
 if __name__ == '__main__':
