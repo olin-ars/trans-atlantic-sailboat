@@ -2,6 +2,7 @@
 import rospy
 from std_msgs.msg import Float32
 from oars_gb_pkg.libraries.dynamixels.dynamixel_motor import DynamixelMotor
+from oars_gb_pkg.utils.serial_utils import resolve_device_port
 
 
 class MotorController:
@@ -27,10 +28,13 @@ class MotorController:
         Initialize the motors.
         """
 
+        # Determine the USB port the USB2Dynamixel serial adapter is connected to
+        port = resolve_device_port('AL03EQAH')
+
         # Initialize the motors
-        self.main = DynamixelMotor(self.MAIN_PROFILE)
-        self.jib = DynamixelMotor(self.JIB_PROFILE)
-        self.rudder = DynamixelMotor(self.RUDDER_PROFILE)
+        self.main = DynamixelMotor(self.MAIN_PROFILE, port)
+        self.jib = DynamixelMotor(self.JIB_PROFILE, port)
+        self.rudder = DynamixelMotor(self.RUDDER_PROFILE, port)
         print('Initialized motor controller node')
 
     def callback_main_pos(self, msg, debug = False):

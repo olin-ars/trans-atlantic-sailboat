@@ -3,6 +3,7 @@ import rospy
 import serial
 from std_msgs.msg import Float32, String, Float32MultiArray
 from geometry_msgs.msg import Pose2D
+from oars_gb.utils.serial_utils import resolve_device_port
 
 """
 This ROS node is responsible for handling messages from the Airmar weather station (which contains an
@@ -54,13 +55,13 @@ class AirmarParser:
         rate = rospy.Rate(10)  # 10Hz
         while not rospy.is_shutdown():
 
-            # Check if there is data waiting to be read from serial
-            if self.serial.inWaiting() == 0:
-                rate.sleep()  # No messages currently, so wait a little bit and then try again
-                continue
-
-            # Read data sent from Airmar
             try:
+                # Check if there is data waiting to be read from serial
+                if self.serial.inWaiting() == 0:
+                    rate.sleep()  # No messages currently, so wait a little bit and then try again
+                    continue
+
+                # Read data sent from Airmar
                 msg = self.serial.readline()
             except rospy.ROSInterruptException:  # Error connecting to Airmar
                 self.read_fail_count += 1
@@ -172,9 +173,16 @@ class AirmarParser:
 
 
 if __name__ == '__main__':
-    try:
-        # port = sys.argv[1]
-        core = AirmarParser()
-        core.run()
-    except rospy.ROSInterruptException:
-        print('Airmar node crashed')
+    crash_count = 0
+    while crash_count < 5:
+        try:
+            # Find the port of the serial to USB adapter by its serial number
+            port = resolve_device_port('FTYZZZOR')
+            if port:
+                core = AirmarParser(port)
+                core.run()
+            else:
+                crash_count += 1
+        except rospy.ROSInterruptException:
+            crash_count += 1
+            print('Airmar node crashed.')

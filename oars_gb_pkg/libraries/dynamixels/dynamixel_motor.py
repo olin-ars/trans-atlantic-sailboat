@@ -3,13 +3,14 @@ from oars_gb_pkg.libraries.dynamixels.dynamixel_controller import DynamixelContr
 
 class DynamixelMotor:
 
-    def __init__(self, profile):
+    def __init__(self, profile, usb_device='/dev/ttyUSB0'):
         """
         Creates a new instance of a Dynamixel motor.
         :param profile: a motor profile with ID of the Dynamixel and its max and min positions
+        :param usb_device: the device name of the USB2Dynamixel
         """
         self.id = profile['id']
-        self.motor = DynamixelController(self.id)
+        self.motor = DynamixelController(self.id, usb_device)
         self.min = profile['min']
         self.max = profile['max']
         self.range = self.max - self.min

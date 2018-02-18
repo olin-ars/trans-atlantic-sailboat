@@ -4,7 +4,7 @@
     <include file="$(find oars_gb)/launch/bringup-actuators.launch"/>
 
     <!-- Heading control -->
-    <node name="heading_controller" pkg="oars_gb" type="heading_controller.py"/>
+    <node name="heading_controller" output="screen" pkg="oars_gb" type="heading_controller.py"/>
 
     <!-- Sensors -->
     <include file="$(find oars_gb)/launch/sensors.launch"/>
