@@ -1,0 +1,12 @@
+<launch>
+
+    <!-- Spektrum RC controller -->
+    <node name="rc_controller" pkg="oars_gb" type="rc_controller.py"/>
+
+    <!-- Motor controllers, etc -->
+    <include file="$(find oars_gb)/launch/bringup-actuators.launch"/>
+
+    <!-- Publish telemetry statistics -->
+    <include file="$(find oars_gb)/launch/telemetry.launch"/>
+
+</launch>

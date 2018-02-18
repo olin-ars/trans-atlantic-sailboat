@@ -1,0 +1,5 @@
+<launch>
+    <!-- This launch file starts all nodes driving actuators on the boat -->
+    <node name="motor_controller" pkg="oars_gb" type="motor_controller.py"/>
+
+</launch>
