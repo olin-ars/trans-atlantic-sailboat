@@ -5,7 +5,7 @@ Note: This module uses code adapted from the Robotis DynamixelSDK (https://githu
 from threading import Thread
 import time
 
-from dynamixels import dynamixel_functions as dynamixel
+from oars_gb.libraries.dynamixels import dynamixel_functions as dynamixel
 
 
 class DynamixelController:

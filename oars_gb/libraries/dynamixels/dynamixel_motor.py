@@ -1,4 +1,4 @@
-from dynamixels.dynamixel_controller import DynamixelController
+from oars_gb.libraries.dynamixels.dynamixel_controller import DynamixelController
 
 
 class DynamixelMotor:

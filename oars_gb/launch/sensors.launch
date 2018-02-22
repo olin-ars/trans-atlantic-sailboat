@@ -1,0 +1,5 @@
+<launch>
+    <!-- Airmar weather station (GPS, wind speed & direction, heading, accelerometer & gyroscope) -->
+    <node name="airmar" pkg="oars_gb" type="airmar.py"/>
+
+</launch>

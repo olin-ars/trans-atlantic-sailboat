@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+# This is all for an IMU that we aren't using right now (2/10/2018)
+
 """partial based on http://wiki.ros.org/rospy_tutorials/Tutorials/WritingPublisherSubscriber"""
 import rospy
 from geometry_msgs.msg import Vector3

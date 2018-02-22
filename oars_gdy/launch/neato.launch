@@ -1,5 +1,0 @@
-<launch>
-
-    <node name="rc_control" pkg="oars_gdy" type="rc_neato" />
-
-</launch>
