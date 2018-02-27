@@ -59,7 +59,6 @@ class WaypointGenerator:
 
         return change_x, change_y
 
-
     def cell_to_GPS_coords(self, coord, p1, p2, cols, rows):
         """
         Converts cell coordinates to GPS cordinates
@@ -113,6 +112,7 @@ class WaypointGenerator:
         # print("y_GPS:", y_GPS_coord)
 
         return x_GPS_coord, y_GPS_coord
+
 
 if __name__ == "__main__":
     import doctest
