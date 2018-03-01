@@ -2,65 +2,127 @@
 
 import math
 import rospy
+import time
 from std_msgs.msg import Float32
 from std_msgs.msg import Float32MultiArray
 
 
-class HeadingController:
+class HeadingController():
 
-    MIN_SHIFT = 20
-    MAIN_MAX_ANGLE = 100
-    JIB_MAX_ANGLE = 100
+    def __init__(self, verbose=False):
 
-    main_pos = 0
-    jib_pos = 0
+        self.verbose = verbose
 
-    def __init__(self):
-
+        #   Establish ROS node and create topics
         rospy.init_node('sail_control', anonymous=True)
+        self.rudder_pub = rospy.Publisher('/rudder_pos', Float32, queue_size=1)
+        rospy.Subscriber("/boat/heading", Float32, self.process_current_heading, queue_size=2)
+        #   TODO make publisher to publish a target heading
+        rospy.Subscriber("/control/target_heading", Float32, self.process_target_heading, queue_size=1)
 
-        r = rospy.Rate(2)
+        #   Subscribers for PI control constants
+        #   TODO make controller to publish these values
+        rospy.Subscriber("/control/p", Float32, self.process_p, queue_size=1)
+        rospy.Subscriber("/control/i", Float32, self.process_i, queue_size=1)
 
-        wind_angle = rospy.Subscriber("/weather/wind/rel", Float32MultiArray, self.update_wind, queue_size=5)
-        self.new_sail_pos = 0
+        #   Set initial conditions
+        r = rospy.Rate(5)
+        self.heading_integral = 0   #   To be multiplied by I term
+        self.current_time = time.time() #   Used in integral calculation
 
-        self.main_pub = rospy.Publisher('/main_pos', Float32, queue_size=0)
-        self.jib_pub = rospy.Publisher('/jib_pos', Float32, queue_size=0)
+        #   Set subscriber constants to None while no messages recieved yet
+        self.p_term = None
+        self.i_term = None
+        self.current_heading = None
+        self.target_heading = None
 
-        self.main_pos = 0
-        self.jib_pos = 0
+        if self.verbose:
+            print("Heading controller initialized.")
 
-        print("initialized")
+        #   Main loop
         while not rospy.is_shutdown():
-            self.main_pub.publish(self.main_pos)
-            self.jib_pub.publish(self.jib_pos)
-            # print("published")
+
+            #   Only start publishing rudder positions if all other nodes
+            #   are being published to
+            if not None in [self.p_term, self.i_term,
+                self.current_heading, self.target_heading]:
+
+                #   Publish PI-controlled rudder position
+                rudder_pos = self.calculate_rudder_pos()
+                self.rudder_pub.publish(rudder_pos)
+
+                if self.verbose:
+                    print("Target rudder position: %s" % rudder_pos)
+                    print("Target heading: %s   Current heading: %s" % \
+                        (self.target_heading, self.current_heading))
+
+            elif self.verbose:
+                print [self.p_term, self.i_term, self.current_heading, self.target_heading]
 
             r.sleep()
-            
-    def update_wind(self, msg):
-        angle = msg.data[1]
-        print('Wind angle:', angle)
-        self.main_pos = self.calc_main_pos(angle)
-        self.jib_pos = self.calc_jib_pos(angle)
-        print('Setting main to {} and jib to {}'.format(self.main_pos, self.jib_pos))
 
-    def calc_main_pos(self, wind_angle):
-        res = (180 - abs(180 - (wind_angle+self.MIN_SHIFT))) / self.MAIN_MAX_ANGLE
-        if res > 1:
-            res = 1
-        elif res < 0:
-            res = 0
-        return res
 
-    def calc_jib_pos(self, wind_angle):
-        res = (180 - abs(180 - (wind_angle+self.MIN_SHIFT))) / self.JIB_MAX_ANGLE
-        if res > 1:
-            res = 1
-        elif res < 0:
-            res = 0
-        return res
+    def process_target_heading(self, msg):
+        """ Update target heading every time subscriber is updated """
+        self.target_heading = msg.data
+
+
+    def process_i(self, msg):
+        """ Update i term every time subscriber is updated """
+        self.i_term = msg.data
+
+
+    def process_p(self, msg):
+        """ Update p term every time subscriber is updated """
+        self.p_term = msg.data
+
+
+    def process_current_heading(self, msg):
+        """ Update current heading every time subscriber is updated """
+        self.current_heading = msg.data
+
+
+    def angle_diff(self, ref_angle, target_angle):
+        """ Calculates the minimum distance the reference angle must change to
+            reach the target angle.
+
+            Inputs: float ref_angle (degrees), float target_angle (degrees)
+            Output: Float representing minimum distance between angles, between
+                -180 and 180.
+        """
+
+        a_scale = 360
+        differences = [target_angle - ref_angle,
+            target_angle + a_scale - ref_angle,
+            target_angle - ref_angle - a_scale]
+        return min(differences, key=abs)
+
+
+    def calculate_rudder_pos(self):
+        """ Uses PI control to calculate a desired position for the rudder.
+
+            Inputs: none (reads from ROS subscribers)
+            Outputs: float for desired rudder position
+        """
+
+        #   Calculate the difference from your desired heading
+        heading_difference = self.angle_diff(self.current_heading, self.target_heading)
+        p = self.p_term
+        i = self.i_term
+
+        #   Update the heading integral based on the time that has passed
+        dt = time.time() - self.current_time
+        self.current_time = time.time()
+        self.heading_integral += heading_difference*dt
+
+        output = p*heading_difference + i*self.heading_integral
+
+        #   limit output to range between 0 and 1
+        output = min(output, 1)
+        output = max(output, -1)
+
+        return output
 
 
 if __name__ == '__main__':
-    HeadingController()
+    HeadingController(verbose=True)
