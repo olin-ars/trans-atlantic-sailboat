@@ -41,11 +41,11 @@ class HeadingController():
 
         #   Main loop
         while not rospy.is_shutdown():
+            profile = self.profile()
 
             #   Only start publishing rudder positions if all other nodes
             #   are being published to
-            if not None in [self.p_term, self.i_term,
-                self.current_heading, self.target_heading]:
+            if not None in profile:
 
                 #   Publish PI-controlled rudder position
                 rudder_pos = self.calculate_rudder_pos()
@@ -57,14 +57,22 @@ class HeadingController():
                         (self.target_heading, self.current_heading))
 
             elif self.verbose:
-                print [self.p_term, self.i_term, self.current_heading, self.target_heading]
+                print("P: %s, I: %s, CH: %s, TH: %s") % profile
 
             r.sleep()
+
+
+    def profile(self):
+        """ Returns the state of the P term, I term, heading, and target heading in a tuple. """
+        return (self.p_term, self.i_term, self.current_heading, self.target_heading)
 
 
     def process_target_heading(self, msg):
         """ Update target heading every time subscriber is updated """
         self.target_heading = msg.data
+
+        #   Reset I term so it doesn't accumulate between heading targets
+        self.i_term = 0
 
 
     def process_i(self, msg):
@@ -120,6 +128,9 @@ class HeadingController():
         #   limit output to range between 0 and 1
         output = min(output, 1)
         output = max(output, -1)
+
+        #   Change range to (0, 1) to match rudder controller
+        output = output/2.0 + 0.5
 
         return output
 
