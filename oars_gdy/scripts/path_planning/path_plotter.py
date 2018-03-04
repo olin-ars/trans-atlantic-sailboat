@@ -13,26 +13,26 @@ class GridMap():
             self.width = 10
             self.height = 10
         # Creates empty grid
-        self.grid = [[Cell(coords = (i, j)) for j in range(self.width)] for i in range(self.height)]
+        self.grid = [[Cell(coords = (x, y)) for x in range(self.width)] for y in range(self.height)]
 
         # If an image is provided, adds land where there are dark pixels
         if image:
-            for i in range(self.height):
-                for j in range(self.width):
-                    if map_gs.getpixel((i, j)) < 50:
-                        self.grid[j][i].is_water = False
+            for y in range(self.height):
+                for x in range(self.width):
+                    if map_gs.getpixel((x, y)) < 50:
+                        self.grid[y][x].is_water = False
 
     def draw_path(self, path, map_image, saveas):
         """ Creates an image with the map image as a background and the cells in
             the final path highlighted in green. """
         img = Image.new("RGB", (self.width, self.height))
         pixels = img.load()
-        for i in range(self.height):
-            for j in range(self.width):
-                if (i, j) in path:
-                    pixels[i, j] = (0, 255, 0)
+        for y in range(self.height):
+            for x in range(self.width):
+                if (x, y) in path:
+                    pixels[x, y] = (0, 255, 0)
                 else:
-                    pixels[i, j] = map_image.getpixel((i, j))
+                    pixels[x, y] = map_image.getpixel((x, y))
 
         img.save(saveas)
 
@@ -52,8 +52,8 @@ class GridMap():
     def add_buffer(self):
         """ Blocks off cells adjacent to non-water cells. Returns nothing, replaces
             the grid with a grid with more blocked-off cells. """
-        buffered_grid = [[Cell(coords = (i, j), is_water = self.safe_distance((i, j))) \
-            for i in range(self.width)] for j in range(self.height)]
+        buffered_grid = [[Cell(coords = (x, y), is_water = self.safe_distance((x, y))) \
+            for x in range(self.width)] for y in range(self.height)]
         self.grid = buffered_grid
 
     def get_cell(self, coords):
@@ -103,7 +103,7 @@ class AStarPlanner():
             open, and not in the closed list. """
         directions = [(1, 0), (0, 1), (-1, 0), (0, -1), (1, 1), (1, -1), (-1, -1), (-1, 1)]
         all_adj = [self.grid._add_coords(coords, d) for d in directions]
-        all_costs = [2, 100, 2, 10, 1, 1, 1, 1]
+        all_costs = [2, 3, 2, 10, 1, 1, 1, 1]
         in_bounds = [self.is_valid(c) for c in all_adj]
         costs = []
         open_adj = []
@@ -189,7 +189,7 @@ if __name__ == "__main__":
     # Make grid of land/water cells based on image
     grid = GridMap(image = map_gs)
     g = AStarPlanner(grid)
-    grid.add_buffer()
+    # grid.add_buffer()
     # Find an open starting and ending coordinate
     start = (0, 0)
     end = (grid.width - 1, grid.height - 1)
@@ -199,5 +199,5 @@ if __name__ == "__main__":
         end = (end[0] - 1, end[1] - 1)
     # Run the path planner and save the path in an image
     path = g.run(start, end)
-    saveas = datetime.now().__format__('%j%H%M%S') + '.png'
+    saveas = 'paths/' + datetime.now().__format__('%j%H%M') + '.png'
     grid.draw_path(path, map_image, saveas)
