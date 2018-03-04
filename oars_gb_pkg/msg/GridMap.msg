@@ -1,0 +1,5 @@
+sensor_msgs/Image grid
+std_msgs/Float32 minLatitude
+std_msgs/Float32 maxLatitude
+std_msgs/Float32 minLongitude
+std_msgs/Float32 maxLongitude
