@@ -25,9 +25,12 @@ class HeadingController():
         rospy.Subscriber("/control/p", Float32, self.process_p, queue_size=1)
         rospy.Subscriber("/control/i", Float32, self.process_i, queue_size=1)
 
+        # Publisher for accumulated error and desired rudder pos
+        self.error_pub = rospy.Publisher('/control/heading/error_desired_rudder_pos', Float32MultiArray, queue_size=1)
+
         #   Set initial conditions
         r = rospy.Rate(5)
-        self.heading_integral = 0   #   To be multiplied by I term
+        self.accumulated_error = 0   #   To be multiplied by I term
         self.current_time = time.time() #   Used in integral calculation
 
         #   Set subscriber constants to None while no messages recieved yet
@@ -71,17 +74,19 @@ class HeadingController():
         """ Update target heading every time subscriber is updated """
         self.target_heading = msg.data
 
-        #   Reset I term so it doesn't accumulate between heading targets
-        self.i_term = 0
+        #   Reset accumulated error so it doesn't accumulate between heading targets
+        self.accumulated_error = 0
 
 
     def process_i(self, msg):
         """ Update i term every time subscriber is updated """
+        self.accumulated_error = 0
         self.i_term = msg.data
 
 
     def process_p(self, msg):
         """ Update p term every time subscriber is updated """
+        self.accumulated_error = 0
         self.p_term = msg.data
 
 
@@ -121,16 +126,20 @@ class HeadingController():
         #   Update the heading integral based on the time that has passed
         dt = time.time() - self.current_time
         self.current_time = time.time()
-        self.heading_integral += heading_difference*dt
+        self.accumulated_error += heading_difference * dt
 
-        output = p*heading_difference + i*self.heading_integral
-
-        #   limit output to range between 0 and 1
-        output = min(output, 1)
-        output = max(output, -1)
+        output = p*heading_difference + i*self.accumulated_error
 
         #   Change range to (0, 1) to match rudder controller
         output = output/2.0 + 0.5
+
+        # Publish accumulated error and desired rudder position
+        error_msg = Float32MultiArray(data=[self.accumulated_error, output])
+        self.error_pub.publish(error_msg)
+
+        #   limit output to range between 0 and 1
+        output = min(output, 1)
+        output = max(output, 0)
 
         return output
 

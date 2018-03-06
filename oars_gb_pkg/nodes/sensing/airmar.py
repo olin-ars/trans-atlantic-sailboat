@@ -3,7 +3,7 @@ import rospy
 import serial
 from std_msgs.msg import Float32, String, Float32MultiArray
 from geometry_msgs.msg import Pose2D
-from oars_gb.utils.serial_utils import resolve_device_port
+from oars_gb_pkg.utils.serial_utils import resolve_device_port
 
 """
 This ROS node is responsible for handling messages from the Airmar weather station (which contains an
@@ -18,34 +18,37 @@ class AirmarParser:
     read_fail_count = 0  # Keep track of the number of consecutive failed Airmar read attempts
     READ_ERROR_ABORT_THRESHOLD = 10  # After this many consecutive failed read attempts, quit
 
-    def __init__(self, port="/dev/ttyUSB0"):
+    def __init__(self, port="/dev/ttyUSB0", use_ros=True):
 
         # Initialize a serial connection to the Airmar
-        self.serial = serial.Serial()
-        self.serial.port = port
-        self.serial.baudrate = 4800
-        self.serial.open()
+        if port:
+            self.serial = serial.Serial()
+            self.serial.port = port
+            self.serial.baudrate = 4800
+            self.serial.open()
 
         # Initialize the ROS node
-        rospy.init_node('airmar')
+        self.use_ros = use_ros
+        if use_ros:
+            rospy.init_node('airmar')
 
-        # Initialize publishers
-        # Boat position (lat/long where pos is N and E, neg is S and W, heading in decimal minutes)
-        self.pos_pub = rospy.Publisher('/boat/position', Pose2D, queue_size=5)
-        # Boat heading (relative to true north)
-        self.heading_true_pub = rospy.Publisher('/boat/heading', Float32, queue_size=2)  # NSEW
-        # Speed (in knots)
-        self.true_speed_pub = rospy.Publisher('/boat/speed/true', Float32, queue_size=5)
-        # Track "made good" (relative to ground and true north)
-        self.track_pub = rospy.Publisher('/boat/track', Float32, queue_size=10)
-        # Relative wind speed (knots) and direction
-        self.rel_wind_pub = rospy.Publisher('/weather/wind/rel', Float32MultiArray, queue_size=5)
-        # True wind speed and direction
-        self.true_wind_pub = rospy.Publisher('/weather/wind/true', Pose2D, queue_size=5)
-        # Error strings we want to see
-        self.error_pub = rospy.Publisher('/logging/airmar/errors', String, queue_size=5)
-        # Full message publisher for debugging
-        self.full_msg_pub = rospy.Publisher('/logging/airmar/fullmsg', String, queue_size=5)
+            # Initialize publishers
+            # Boat position (lat/long where pos is N and E, neg is S and W, heading in decimal minutes)
+            self.pos_pub = rospy.Publisher('/boat/position', Pose2D, queue_size=5)
+            # Boat heading (relative to true north)
+            self.heading_true_pub = rospy.Publisher('/boat/heading', Float32, queue_size=2)
+            # Speed (in knots)
+            self.true_speed_pub = rospy.Publisher('/boat/speed/true', Float32, queue_size=5)
+            # Track "made good" (relative to ground and true north)
+            self.track_pub = rospy.Publisher('/boat/track', Float32, queue_size=10)
+            # Relative wind speed (knots) and direction
+            self.rel_wind_pub = rospy.Publisher('/weather/wind/rel', Pose2D, queue_size=5)
+            # True wind speed and direction
+            self.true_wind_pub = rospy.Publisher('/weather/wind/true', Pose2D, queue_size=5)
+            # Error strings we want to see
+            self.error_pub = rospy.Publisher('/logging/airmar/errors', String, queue_size=5)
+            # Full message publisher for debugging
+            self.full_msg_pub = rospy.Publisher('/logging/airmar/fullmsg', String, queue_size=5)
 
     def run(self):
         """
@@ -84,7 +87,7 @@ class AirmarParser:
             message_components = msg.split(',')
 
             if message_components[0] == '$WIMWV':  # Wind speed and angle message
-                self.handle_true_wind_message(message_components)
+                self.handle_wind_message(message_components)
 
             elif message_components[0] == '$HCHDT':  # Heading relative to true north message
                 self.handle_true_heading_message(message_components)
@@ -104,14 +107,15 @@ class AirmarParser:
             # Sleep for 1/10th of a second
             # rate.sleep()
 
-    def handle_true_wind_message(self, msg):
+    def handle_wind_message(self, msg):
         """
             Parses the WIMWV message containing either true or relative wind speed and publishes it over ROS.
         """
         if msg[-1][0] == 'A':  # Data is valid
             if msg[2] == 'R':  # Relative wind
-                rel_wind = Float32MultiArray()
-                rel_wind.data = [float(msg[3]), float(msg[1])]  # [speed (knots?), direction]
+                rel_wind = Pose2D()
+                rel_wind.theta = float(msg[1])  # Wind direction (knots?)
+                rel_wind.x = float(msg[3])  # Wind speed
                 # Publish the wind readings
                 self.rel_wind_pub.publish(rel_wind)
             else:  # True wind ('T')
@@ -137,28 +141,31 @@ class AirmarParser:
             Parses the GPGLL message containing the position from GPS and publishes it over ROS.
         """
 
-        def convert_angle(string, longitude=False):
-            if not longitude:
-                string = '0' + string
+    def parse_gps_message(self, msg):
+        def convert_angle(string, sign):
             if not string:
                 return 0
+            if sign == 'N' or sign == 'S':  # Latitude is only 2-digit degrees
+                string = '0' + string
             degrees = int(string[:3])
             minutes = float(string[3:])
-            return degrees + minutes/60
+            res = degrees + minutes / 60.0
+            if sign == 'W' or sign == 'S':
+                res *= -1
+            return res
 
+        position = None
         if msg[-2][0] == 'A' or msg[-1][0] == 'A':  # Data valid
             position = Pose2D()
-            position.x = convert_angle(msg[1])  # Latitude (decimal minutes)
-            position.y = convert_angle(msg[3], True)  # Longitude
-            # Convert S and W to negatives for lat/long
-            if msg[2] == 'S':
-                position.x *= -1
-            if msg[4] == 'W':
-                position.y *= -1
+            position.y = convert_angle(msg[1], msg[2])  # Latitude
+            position.x = convert_angle(msg[3], msg[4])  # Longitude (decimal minutes)
             # Publish the position
-            self.pos_pub.publish(position)
-        else:
+            if self.use_ros:
+                self.pos_pub.publish(position)
+        elif self.use_ros:
             self.error_pub.publish('Invalid GPS reading')
+
+        return position
 
     def handle_true_course_message(self, msg):
         """
