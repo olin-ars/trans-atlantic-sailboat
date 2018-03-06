@@ -77,4 +77,4 @@ if __name__ == '__main__':
 
     tr = TelemetryReporter()
     # tr.connect(server, port)
-    tr.connect('oars-monitor.herokuapp.com', 80, ssl)
+    tr.connect(server, port, ssl)

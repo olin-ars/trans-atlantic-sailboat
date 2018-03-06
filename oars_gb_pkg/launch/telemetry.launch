@@ -1,9 +1,9 @@
 <launch>
 
     <node name="telemetry_reporter" pkg="oars_gb" type="telemetry_reporter.py">
-        <env name="OARS_SERVER_URI" value="track.olinaquabots.com"/>
-        <env name="OARS_SERVER_PORT" value="80"/>
-        <env name="OARS_SERVER_USE_SSL" value="True"/>
+        <!--<env name="OARS_SERVER_URI" value="track.olinaquabots.com"/>-->
+        <!--<env name="OARS_SERVER_PORT" value="80"/>-->
+        <!--<env name="OARS_SERVER_USE_SSL" value="True"/>-->
     </node>
 
 </launch>
