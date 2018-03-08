@@ -27,7 +27,7 @@ class TestWaypointGeneration(unittest.TestCase):
         wn.update_wp_list([(3,4),(5,12),(7,24)],False)
         #radius = 6
         # Calculate heading
-        self.assertEqual(wn.check_distance_to_wp(), True)
+        self.assertEqual(wn.have_reached_wp(), True)
 
 
 if __name__ == '__main__':
