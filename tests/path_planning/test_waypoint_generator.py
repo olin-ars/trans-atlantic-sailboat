@@ -1,5 +1,5 @@
 import unittest
-from oars_gb.nodes.thinking.path_planning.waypoint_generator import WaypointGenerator
+from oars_gb_pkg.nodes.thinking.path_planning.waypoint_generator import WaypointGenerator
 
 
 class TestWaypointGeneration(unittest.TestCase):
