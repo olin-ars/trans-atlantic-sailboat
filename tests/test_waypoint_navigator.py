@@ -12,19 +12,69 @@ class TestWaypointGeneration(unittest.TestCase):
     cells to navigate into a list of GPS waypoints.
     """
 
-    def test_calculate_desired_heading(self):
-        wn = WaypointNavigator(6, use_ros=False)
-        test_position = self.create_pose2d(1, 1)
-        wn.update_location(test_position)
-        wn.update_wp_list([(3, 3)])
-        # Calculate heading
-        self.assertEqual(wn.calculate_desired_heading(), 45.0)
+    # def test_calculate_desired_heading(self):
+    #     wn = WaypointNavigator(0.5)
+    #     test_position = Pose2D()
+    #     test_position.x = 1
+    #     test_position.y = 1
+    #     wn.update_location(test_position, False)
+    #     wn.update_wp_list([(4,4), (6,6), (6,8), (8,8), (10,8), (11,11), (13,13)],False)
+    #     # Calculate heading
+    #     self.assertEqual(wn.calculate_desired_heading(), 45.0)
+    #     print(wn.wp_list)
 
     def test_check_distance_to_wp(self):
-        wn = WaypointNavigator(6, use_ros=False)
-        test_position = self.create_pose2d(0, 0)
+        wn = WaypointNavigator(9)
+        test_position = Pose2D()
+        test_position.x = 0
+        test_position.y = 0
+
+        wn.update_wp_list([(4, 4), (6, 6), (6, 8), (8, 8), (10, 8), (11, 11), (13, 13)])
         wn.update_location(test_position)
-        wn.update_wp_list([(3, 4), (5, 12), (7, 24)])
+
+        #radius = 6
+        # Calculate heading
+        self.assertEqual(wn.have_reached_wp(), True)
+        print(wn.wp_list)
+
+    def test_check_distance_to_wp2(self):
+        wn = WaypointNavigator(13)
+        test_position = Pose2D()
+        test_position.x = 0
+        test_position.y = 0
+
+        wn.update_wp_list([(4, 4), (6, 6), (6, 8), (8, 8), (10, 8), (11, 11), (13, 13)])
+        wn.update_location(test_position)
+
+        # radius = 6
+        # Calculate heading
+        self.assertEqual(wn.have_reached_wp(), True)
+        print(wn.wp_list)
+
+    def test_check_distance_to_wp3(self):
+        wn = WaypointNavigator(10)
+        test_position = Pose2D()
+        test_position.x = 0
+        test_position.y = 0
+
+        wn.update_wp_list([(4, 4), (6, 6), (6, 8), (8, 8), (10, 8), (11, 11), (13, 13)])
+        wn.update_location(test_position)
+
+        # radius = 6
+        # Calculate heading
+        self.assertEqual(wn.have_reached_wp(), True)
+        print(wn.wp_list)
+
+    def test_check_distance_to_wp4(self):
+        wn = WaypointNavigator(12)
+        test_position = Pose2D()
+        test_position.x = 0
+        test_position.y = 0
+
+        wn.update_wp_list([(4, 4), (6, 6), (6, 8), (8, 8), (10, 8), (11, 11), (13, 13)])
+        wn.update_location(test_position)
+
+        # radius = 6
         # Calculate heading
         self.assertEqual(wn.have_reached_wp(), True)
 

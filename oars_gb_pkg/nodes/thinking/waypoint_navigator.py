@@ -28,6 +28,14 @@ class WaypointNavigator:
         self.using_ros = True if rospy is not None and use_ros else False
         self.longitude = None
         self.latitude = None
+        self.radius = radius
+        self.wp_list = None
+        self.next_wp = None
+        # rospy.init_node('waypoint_navigator',anonymous=True)
+        # self.heading_pub = rospy.Publisher('/control/desired_heading', Float32, queue_size=0)
+        # rospy.Subscriber('/boat/position', Pose2D, self.update_location, queue_size=1)
+        #print('Waypoint navigator initialized')
+        # rospy.spin()
         self.waypoint_reached_radius = waypoint_reached_radius
         self.wp_list = [(6, 7), (5, 12), (7, 24)]
         self.next_wp = (6, 7)
@@ -51,7 +59,6 @@ class WaypointNavigator:
         # Check if boat GPS coordinates are within proximity radius to consider waypoint reached
         if self.have_reached_wp():
             self.wp_list = self.wp_list[1:]
-            self.update_wp_list(self.wp_list)
             print('Reached Waypoint')
         if self.using_ros:
             self.publish_desired_heading(self.calculate_desired_heading())
