@@ -9,16 +9,15 @@ import time
 class GridGenerator:
     def __init__(self):
         rospy.init_node('grid_generator', anonymous=True)
-        self.grid_pub = rospy.Publisher('/planning/map', Image, queue_size=0)
-        self.bounds_pub = rospy.Publisher('/planning/bounds', Float32, queue_size=0)
+        self.grid_pub = rospy.Publisher('/planning/map', GridMap, queue_size=0)
+        self.image_pub = rospy.Publisher('/planning/image', Image, queue_size=0)
 
     def publish_map(self, map_image, minLat, maxLat, minLong, maxLong):
         # msg = GridMap(grid = map_image, minLatitude = minLat, maxLatitude = maxLat, \
         #         minLongitude = minLong, maxLongitude = maxLong)
-        image_msg = map_image
-        bounds_msg = Float32(minLat)
-        self.grid_pub.publish(image_msg)
-        self.bounds_pub.publish(bounds_msg)
+        grid_msg = GridMap(grid=map_image, minLatitude=Float32(minLat))
+        self.grid_pub.publish(grid_msg)
+        self.image_pub.publish(map_image)
 
 class Grid():
     def __init__(self, image):
@@ -79,13 +78,11 @@ class Grid():
         data = []
 
         for y in range(self.height):
-            row = []
             for x in range(self.width):
                 if self.grid[y][x].is_water:
-                    row.extend([1]*24)
+                    data.extend([254]*3)
                 else:
-                    row.extend([0]*24)
-            data.append(row)
+                    data.extend([0]*3)
 
         img = Image(header = header, height = height, width = width, encoding = encoding, \
         is_bigendian = is_bigendian, step = step, data = data)
@@ -110,4 +107,4 @@ if __name__ == "__main__":
     while True:
         g.publish_map(map_grid, 42.282368, 42.293353, -71.314756, -71.302289)
         print("published")
-        time.sleep(1)
+        time.sleep(10)
