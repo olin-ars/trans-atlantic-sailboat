@@ -18,12 +18,12 @@ class HeadingController():
         self.rudder_pub = rospy.Publisher('/rudder_pos', Float32, queue_size=1)
         rospy.Subscriber("/boat/heading", Float32, self.process_current_heading, queue_size=2)
         #   TODO make publisher to publish a target heading
-        rospy.Subscriber("/control/target_heading", Float32, self.process_target_heading, queue_size=1)
+        rospy.Subscriber("/control/heading/target", Float32, self.process_target_heading, queue_size=1)
 
         #   Subscribers for PI control constants
         #   TODO make controller to publish these values
-        rospy.Subscriber("/control/p", Float32, self.process_p, queue_size=1)
-        rospy.Subscriber("/control/i", Float32, self.process_i, queue_size=1)
+        rospy.Subscriber("/control/heading/kp", Float32, self.process_p, queue_size=1)
+        rospy.Subscriber("/control/heading/ki", Float32, self.process_i, queue_size=1)
 
         # Publisher for accumulated error and desired rudder pos
         self.error_pub = rospy.Publisher('/control/heading/error_desired_rudder_pos', Float32MultiArray, queue_size=1)

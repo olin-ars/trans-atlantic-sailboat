@@ -1,12 +1,27 @@
 #!/usr/bin/env python
 
-from socketIO_client_nexus import SocketIO, SocketIONamespace, LoggingNamespace
+from socketIO_client_nexus import SocketIO, SocketIONamespace
 from datetime import datetime
 import rospy
 import os
 import signal
 from geometry_msgs.msg import Pose2D
-from std_msgs.msg import Float32, Float32MultiArray
+from genpy import Message
+from std_msgs.msg import Float32, Float64, Float32MultiArray, Float64MultiArray, String
+from sensor_msgs.msg import Image
+from oars_gb.msg import GridMap
+
+ROS_MSG_TYPES = {
+    'Float32': Float32,
+    'Float64': Float64,
+    'Float32MultiArray': Float32MultiArray,
+    'Float64MultiArray': Float64MultiArray,
+    'GridMap': GridMap,
+    'Image': Image,
+    'Pose2D': Pose2D,
+    'String': String,
+}
+ERROR_TOPIC_NAME = '/logging/errors'
 
 
 class TelemetryReporter:
@@ -20,15 +35,11 @@ class TelemetryReporter:
         self.socketIO = None
 
         # Register as a ROS node
-        rospy.init_node('telemetry_reporter', anonymous=True)
+        rospy.init_node('telemetry_reporter')
 
         # Listen for ROS boat position messages TODO Reference name from another file
-        rospy.Subscriber("/boat/position", Pose2D, self.received_position_msg, queue_size=1)
-        rospy.Subscriber("/boat/heading", Float32, self.received_heading_msg, queue_size=1)
-        rospy.Subscriber('/control/heading/error_desired_rudder_pos', Float32MultiArray, self.received_heading_controller_error, queue_size=1)
-        self.kpPub = rospy.Publisher("/control/p", Float32, queue_size=1)
-        self.kiPub = rospy.Publisher("/control/i", Float32, queue_size=1)
-        self.targetHeadingPub = rospy.Publisher('/control/target_heading', Float32, queue_size=1)
+        self.subscribers = {}
+        self.publishers = {}
 
         # Listen for SIGINT (process termination requests)
         signal.signal(signal.SIGINT, self.terminate)
@@ -36,11 +47,9 @@ class TelemetryReporter:
     def connect(self, server_address, port, use_ssl=False):
         print('Connecting to {} on port {} {}using SSL'.format(server_address, port, '' if use_ssl else 'without '))
 
-        self.socketIO = SocketIO(server_address, port, LoggingNamespace, verify=(not use_ssl))
+        self.socketIO = SocketIO(server_address, port, verify=(not use_ssl))
         self.reporter = self.socketIO.define(ReportingNamespace, '/reporting')
-        self.reporter.on('set:control/heading/kp', self.on_kp_received)
-        self.reporter.on('set:control/heading/ki', self.on_ki_received)
-        self.reporter.on('set:control/target_heading', self.on_target_heading_received)
+        self.reporter.on('publishROSMessage', self._handle_server_publish_msg)
         self.socketIO.wait()  # Don't finish execution
 
     def terminate(self, *args):
@@ -48,62 +57,202 @@ class TelemetryReporter:
             print('Disconnecting...')
             self.socketIO.disconnect()
 
-    def report(self, message_type, data):
+    def listen_to_topic(self, topic_name, msg_type, save_to_db=True, max_transmit_rate=0, queue_size=1):
+        """
+        Sets up a subscriber on the given ROS topic.
+        :param {string} topic_name: the name of the ROS topic
+        :param {string|genpy.Message} msg_type: the type of ROS message
+        :param {boolean} save_to_db: whether or not messages sent to the server should be stored in the database
+            or just forwarded on to connected observers
+        :param {number} max_transmit_rate: the maximum rate at which to broadcast updates to the server (Hz)
+        :param {number} queue_size: the maximum number of ROS messages to hold in the buffer
+        :return: True if a subscriber was successfully registered, False otherwise
+        """
+        # Try to resolve the message type if it is not already a ROS message class
+        if not issubclass(msg_type, Message):
+            if type(msg_type) == str:
+                # Try to look up in our dictionary
+                msg_type = ROS_MSG_TYPES.get(msg_type)
+                if not msg_type:  # Couldn't find given message type in dictionary
+                    return False
+            else:  # Not a subclass of genpy.Message and not a string
+                return False
+
+        # Define a handler to serialize the ROS message and send it to the server
+        def msg_handler(msg):
+            self.transmit_message(topic_name, msg, msg_type, save_to_db=save_to_db)
+
+        self.subscribers[topic_name] = rospy.Subscriber(topic_name, msg_type, msg_handler, queue_size=queue_size)
+        print('Registered listener for ' + topic_name)
+        return True
+
+    def transmit_message(self, topic_name, msg, msg_type, save_to_db=True):
+        """
+        Transmits a message to the server.
+        :param {string} topic_name: the name of the ROS topic
+        :param {genpy.Message} msg: the actual ROS message
+        :param {type} msg_type: the type of ROS message
+        :param {boolean} save_to_db: whether or not the message should be saved to the database
+        """
         if not self.reporter:
             print('Not connected to /reporter')
             return
 
         payload = {
-            'type': message_type,
-            'data': data,
-            'timestamp': str(datetime.now())
+            'topicName': topic_name,
+            'type': msg_type.__name__,
+            'data': self._serialize_ros_message(msg),
+            'timestamp': str(datetime.now()),
+            'saveToDb': save_to_db
         }
-        print('Reporting', payload)
-        # payload = json.dumps(payload)
-        self.reporter.emit('report', payload)
+        self.reporter.emit('message', payload)
 
-    def received_position_msg(self, msg):
-        # Build up the message data
-        data = {
-            'x': msg.x,
-            'y': msg.y
+    @staticmethod
+    def _serialize_ros_message(msg):
+        """
+        Converts a ROS message into a dictionary that can be serialized and sent to the server.
+        :param {genpy.Message} msg: the raw ROS message
+        :return: a dictionary with the important values from the message
+        """
+        msg_type = type(msg)
+        if msg_type == Pose2D:
+            return {
+                'x': msg.x,
+                'y': msg.y
+            }
+
+        elif msg_type == Float32 \
+                or msg_type == Float64:
+            return msg.data
+
+        elif msg_type == Float32MultiArray \
+                or msg_type == Float64MultiArray:
+            return list(msg.data)
+
+        elif msg_type == GridMap:
+            return {
+                'grid': TelemetryReporter._serialize_ros_image_message(msg.grid),
+                'minLatitude': msg.minLatitude.data,
+                'maxLatitude': msg.maxLatitude.data,
+                'minLongitude': msg.minLongitude.data,
+                'maxLongitude': msg.maxLongitude.data
+            }
+
+        return None
+
+    @staticmethod
+    def _serialize_ros_image_message(msg):
+        """
+        Converts a ROS Image message into a dictionary.
+        :param msg: the ROS Image message (from sensor_msgs.msg)
+        :return: a dictionary with the image width, height, encoding, and pixel data
+        """
+        return {
+            'height': msg.height,
+            'width': msg.width,
+            'encoding': msg.encoding,
+            'data': msg.data
         }
-        # Transmit the data to the server
-        self.report('position', data)
 
-    def received_heading_msg(self, msg):
-        # Build up the message data
-        data = msg.data
-        # Transmit the data to the server
-        self.report('heading', data)
+    def publish_message(self, topic_name, msg_type, data):
+        """
+        Publishes a message to the given ROS topic.
+        :param {string} topic_name: the name of the ROS topic to publish to
+        :param {type} msg_type: the ROS message type
+        :param data: the message payload
+        """
+        # Turn the data into a ROS message
+        msg = self._build_ros_msg(data, msg_type)
 
-    def received_heading_controller_error(self, msg):
-        data = {
-            'error': msg.data[0],
-            'desiredRudderPos': msg.data[1]
-        }
-        self.report('control/heading/error_desired_rudder_pos', data)
+        # Register a publisher if one is not already registered for this topic
+        if topic_name not in self.publishers:
+            self.configure_publisher(topic_name, msg_type)
+            # Note: Messages sent shortly after configuring publisher will likely be lost.
+            # See https://github.com/ros/ros_comm/issues/176 for more info.
 
-    def received_wind_rel_msg(self, msg):
-        self.report('weather/wind/rel', msg.data)
+        self.publishers[topic_name].publish(msg)
 
-    def on_kp_received(self, (data)):
+    def _convert_unicode(self, data):
+        """
+        Recursively converts attributes unicode string attributes or elements on an object to UTF-8 strings.
+        :param data: a dict, list, or string to convert to UTF-8.
+        :return: the converted object
+        """
+        if isinstance(data, dict):
+            return {self._convert_unicode(key): self._convert_unicode(value)
+                    for key, value in data.iteritems()}
+        elif isinstance(data, list):
+            return [self._convert_unicode(element) for element in data]
+        elif isinstance(data, unicode):
+            return data.encode('utf-8')
+        else:
+            return data
+
+    def configure_publisher(self, topic_name, msg_type, queue_size=1):
+        """
+        Sets up a ROS message publisher.
+        :param topic_name: the name of the ROS topic to publish to
+        :param msg_type: the type of messages to publish
+        :param queue_size: the number of messages to queue up for sending before dropping old ones
+        """
+        if topic_name not in self.publishers:
+            self.publishers[topic_name] = rospy.Publisher(topic_name, msg_type, queue_size=queue_size)
+
+    def _build_ros_msg(self, data, msg_type):
+        """
+        Constructs a ROS message to transmit the given data.
+        :param data: the data to hold in the message
+        :param {genpy.Message} msg_type: the type of message to construct
+        :return: a ROS message containing the data
+        """
         try:
-            self.kpPub.publish(Float32(data=float(data)))
-        except ValueError:
-            pass  # Invalid input
+            # TODO Ints and arrays of ints
 
-    def on_ki_received(self, (data)):
-        try:
-            self.kiPub.publish(Float32(data=float(data)))
-        except ValueError:
-            pass  # Invalid input
+            if msg_type == Float32 or msg_type == Float64:  # Floating-point number
+                return msg_type(data=float(data))
 
-    def on_target_heading_received(self, (data)):
-        try:
-            self.targetHeadingPub.publish(Float32(data=float(data)))
+            if msg_type == Float32MultiArray or msg_type == Float64MultiArray:  # Array of floating-point numbers
+                return msg_type(data=[float(x) for x in data])
+
+            if msg_type == String:
+                return msg_type(data=data)
         except ValueError:
-            pass  # Invalid input
+            error_msg = 'Problem parsing data: ' + data + '. Supposed to be of type ' + str(msg_type)
+            self.publish_message(ERROR_TOPIC_NAME, String, error_msg)
+
+        return None
+
+    def _handle_server_publish_msg(self, msg):
+        """
+        Handles WebSockets "publish" events from the server by publishing their info to ROS.
+        :param msg: the WebSockets message payload
+        """
+        # Convert Unicode strings to UTF-8
+        msg = self._convert_unicode(msg)
+
+        # Make sure message type is specified and try to resolve it to ROS message class
+        if 'type' in msg:
+            msg_type = ROS_MSG_TYPES.get(msg['type'])
+            if not msg_type:
+                return self._publish_error_msg('Could not understand message type "' + msg['type'] + '".')
+        else:
+            return self._publish_error_msg('Attribute "type" must be specified.')
+        # Check for the topic name
+        if 'topicName' not in msg:
+            return self._publish_error_msg('Attribute "topicName" must be specified.')
+        # Check for the message payload
+        elif 'data' not in msg:
+            self._publish_error_msg('Attribute "data" must be specified.')
+
+        self.publish_message(msg['topicName'], msg_type, msg['data'])
+
+    def _publish_error_msg(self, error):
+        """
+        Logs an error by publishing it to the error log topic.
+        :param {string} error: the content of the message
+        """
+        print(error)
+        self.publish_message(ERROR_TOPIC_NAME, String, String(data=error))
 
 
 class ReportingNamespace(SocketIONamespace):
@@ -119,5 +268,11 @@ if __name__ == '__main__':
     ssl = os.environ.get('OARS_SERVER_USE_SSL', False)
 
     tr = TelemetryReporter()
-    # tr.connect(server, port)
+
+    # Register topic listeners
+    tr.listen_to_topic('/boat/heading', Float32)
+    tr.listen_to_topic('/boat/position', Pose2D)
+    tr.listen_to_topic('/weather/wind/rel', Float32MultiArray)
+    tr.listen_to_topic('/control/heading/error_desired_rudder_pos', Pose2D)
+
     tr.connect(server, port, ssl)
