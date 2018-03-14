@@ -28,17 +28,10 @@ class WaypointNavigator:
         self.using_ros = True if rospy is not None and use_ros else False
         self.longitude = None
         self.latitude = None
-        self.radius = radius
         self.wp_list = None
         self.next_wp = None
-        # rospy.init_node('waypoint_navigator',anonymous=True)
-        # self.heading_pub = rospy.Publisher('/control/desired_heading', Float32, queue_size=0)
-        # rospy.Subscriber('/boat/position', Pose2D, self.update_location, queue_size=1)
-        #print('Waypoint navigator initialized')
-        # rospy.spin()
         self.waypoint_reached_radius = waypoint_reached_radius
-        self.wp_list = [(6, 7), (5, 12), (7, 24)]
-        self.next_wp = (6, 7)
+
         if self.using_ros:  # False if we're doing ROS-less unit testing
             rospy.init_node('waypoint_navigator', anonymous=True)
             self.heading_pub = rospy.Publisher('/control/desired_heading', Float32, queue_size=0)
@@ -69,20 +62,20 @@ class WaypointNavigator:
         :return: True if the boat is within the waypoint-reached radius of the next waypoint,
         False otherwise.
         """
-        if self.next_wp is None:
+        if self.next_wp is None or self.longitude is None:
             return False
         dist_to_wp = math.sqrt(((self.next_wp[0] - self.longitude)**2) + ((self.next_wp[1] - self.latitude)**2))
         return dist_to_wp <= self.waypoint_reached_radius
 
-    def update_wp_list(self, wp_list):
+    def update_wp_list(self, wp_list_msg):
         """
         Updates the list of waypoints which the boat should be using for navigation. If running in
         a ROS environment, it will also trigger a desired heading recalculation and republish.
-        :param wp_list: a list of tuples specifying GPS coordinates in the form (long, lat)
-        :type wp_list: # TODO
+        :param wp_list_msg: a list of tuples specifying GPS coordinates in the form (long, lat)
+        :type wp_list_msg: WaypointList
         """
-        self.wp_list = wp_list
-        self.next_wp = wp_list[0]
+        self.wp_list = zip(wp_list_msg.longitudes, wp_list_msg.latitudes)
+        self.next_wp = self.wp_list[0]
         if self.using_ros:
             self.publish_desired_heading(self.calculate_desired_heading())
 
