@@ -272,7 +272,7 @@ if __name__ == '__main__':
     # Register topic listeners
     tr.listen_to_topic('/boat/heading', Float32)
     tr.listen_to_topic('/boat/position', Pose2D)
-    tr.listen_to_topic('/weather/wind/rel', Float32MultiArray)
+    tr.listen_to_topic('/weather/wind/rel', Pose2D)
     tr.listen_to_topic('/control/heading/error_desired_rudder_pos', Pose2D)
 
     tr.connect(server, port, ssl)
