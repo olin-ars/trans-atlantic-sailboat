@@ -1,17 +1,16 @@
 #!/usr/bin/env python
 
-import math
 import rospy
 import time
-from std_msgs.msg import Float32
-from std_msgs.msg import Float32MultiArray
+from std_msgs.msg import Float32, Float32MultiArray, UInt8
 
 
-class HeadingController():
+class HeadingController:
 
     def __init__(self, verbose=False):
 
         self.verbose = verbose
+        self.enabled = True
 
         #   Establish ROS node and create topics
         rospy.init_node('sail_control', anonymous=True)
@@ -19,6 +18,8 @@ class HeadingController():
         rospy.Subscriber("/boat/heading", Float32, self.process_current_heading, queue_size=2)
         #   TODO make publisher to publish a target heading
         rospy.Subscriber("/control/heading/target", Float32, self.process_target_heading, queue_size=1)
+        # Subscribe to the topic dictating which operating mode the boat should be in
+        rospy.Subscriber('/control/mode', UInt8, self.received_operating_mode_msg, queue_size=1)
 
         #   Subscribers for PI control constants
         #   TODO make controller to publish these values
@@ -44,23 +45,24 @@ class HeadingController():
 
         #   Main loop
         while not rospy.is_shutdown():
-            profile = self.profile()
+            if self.enabled:
+                profile = self.profile()
 
-            #   Only start publishing rudder positions if all other nodes
-            #   are being published to
-            if not None in profile:
+                #   Only start publishing rudder positions if all other nodes
+                #   are being published to
+                if not None in profile:
 
-                #   Publish PI-controlled rudder position
-                rudder_pos = self.calculate_rudder_pos()
-                self.rudder_pub.publish(rudder_pos)
+                    #   Publish PI-controlled rudder position
+                    rudder_pos = self.calculate_rudder_pos()
+                    self.rudder_pub.publish(rudder_pos)
 
-                if self.verbose:
-                    print("Target rudder position: %s" % rudder_pos)
-                    print("Target heading: %s   Current heading: %s" % \
-                        (self.target_heading, self.current_heading))
+                    if self.verbose:
+                        print("Target rudder position: %s" % rudder_pos)
+                        print("Target heading: %s   Current heading: %s" %
+                            (self.target_heading, self.current_heading))
 
-            elif self.verbose:
-                print("P: %s, I: %s, CH: %s, TH: %s") % profile
+                elif self.verbose:
+                    print("P: %s, I: %s, CH: %s, TH: %s" % profile)
 
             r.sleep()
 
@@ -89,6 +91,16 @@ class HeadingController():
         self.accumulated_error = 0
         self.p_term = msg.data
 
+    def received_operating_mode_msg(self, msg):
+        """
+        Called when a ROS message is received on /control/mode
+        :param msg: the ROS message describing which operating mode the boat is in
+        :type msg: UInt8
+        """
+        # Only enable if in fully autonomous mode
+        self.enabled = msg.data == 2
+        if self.verbose:
+            print('Heading controller %s' % 'enabled' if self.enabled else 'disabled')
 
     def process_current_heading(self, msg):
         """ Update current heading every time subscriber is updated """

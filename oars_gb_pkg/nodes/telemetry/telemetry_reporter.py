@@ -7,7 +7,7 @@ import os
 import signal
 from geometry_msgs.msg import Pose2D
 from genpy import Message
-from std_msgs.msg import Float32, Float64, Float32MultiArray, Float64MultiArray, String
+from std_msgs.msg import Float32, Float64, Float32MultiArray, Float64MultiArray, String, UInt8
 from sensor_msgs.msg import Image
 from oars_gb.msg import GridMap
 
@@ -20,6 +20,7 @@ ROS_MSG_TYPES = {
     'Image': Image,
     'Pose2D': Pose2D,
     'String': String,
+    'UInt8': UInt8,
 }
 ERROR_TOPIC_NAME = '/logging/errors'
 
@@ -122,7 +123,8 @@ class TelemetryReporter:
             }
 
         elif msg_type == Float32 \
-                or msg_type == Float64:
+                or msg_type == Float64 \
+                or msg_type == UInt8:
             return msg.data
 
         elif msg_type == Float32MultiArray \
@@ -208,7 +210,9 @@ class TelemetryReporter:
         try:
             # TODO Ints and arrays of ints
 
-            if msg_type == Float32 or msg_type == Float64:  # Floating-point number
+            if msg_type == UInt8 \
+                    or msg_type == Float32 \
+                    or msg_type == Float64:  # Numbers
                 return msg_type(data=float(data))
 
             if msg_type == Float32MultiArray or msg_type == Float64MultiArray:  # Array of floating-point numbers
@@ -272,7 +276,9 @@ if __name__ == '__main__':
     # Register topic listeners
     tr.listen_to_topic('/boat/heading', Float32)
     tr.listen_to_topic('/boat/position', Pose2D)
+    tr.listen_to_topic('/rudder_pos', Float32)
     tr.listen_to_topic('/weather/wind/rel', Pose2D)
     tr.listen_to_topic('/control/heading/error_desired_rudder_pos', Pose2D)
+    tr.listen_to_topic('/control/mode', UInt8)
 
     tr.connect(server, port, ssl)
