@@ -10,3 +10,10 @@ class Float32:
 
     def __init__(self):
         self.data = float(0)
+
+
+class WaypointList:
+
+    def __init__(self):
+        self.latitudes = []
+        self.longitudes = []

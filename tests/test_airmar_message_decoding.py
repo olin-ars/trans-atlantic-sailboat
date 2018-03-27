@@ -35,7 +35,7 @@ class TestAirmarMessageDecoding(unittest.TestCase):
 
     @staticmethod
     def to_deg(degrees, minutes):
-        return degrees + minutes / 60.0
+        return degrees + minutes / 60.0 if degrees >= 0 else degrees - minutes / 60.0
 
 
 if __name__ == '__main__':

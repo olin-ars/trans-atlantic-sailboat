@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import math
+from collections import deque
 try:
     import rospy
     from std_msgs.msg import Float32
@@ -51,10 +52,9 @@ class WaypointNavigator:
         self.latitude = msg.y
         # Check if boat GPS coordinates are within proximity radius to consider waypoint reached
         if self.have_reached_wp():
-            self.wp_list = self.wp_list[1:]
-            print('Reached Waypoint')
-        if self.using_ros:
-            self.publish_desired_heading(self.calculate_desired_heading())
+            self.next_wp = self.wp_list.popleft()  # Progress to the next waypoint
+        if self.using_ros and self.next_wp:  # Don't do if we're not using ROS or if we don't know the next waypoint yet
+            self.heading_pub.publish(self.calculate_desired_heading())
 
     def have_reached_wp(self):
         """
@@ -64,8 +64,21 @@ class WaypointNavigator:
         """
         if self.next_wp is None or self.longitude is None:
             return False
-        dist_to_wp = math.sqrt(((self.next_wp[0] - self.longitude)**2) + ((self.next_wp[1] - self.latitude)**2))
-        return dist_to_wp <= self.waypoint_reached_radius
+        current_pos = (self.longitude, self.latitude)
+        return self._calc_dist_between_points(self.next_wp, current_pos) <= self.waypoint_reached_radius
+
+    @staticmethod
+    def _calc_dist_between_points(p1, p2):
+        """
+        Calculates the distance between a pair of points in 2D space.
+        :param p1: the first point
+        :type p1: tuple
+        :param p2: the second point
+        :type p2: tuple
+        :return: the Euclidean distance between the two points
+        :rtype float
+        """
+        return math.sqrt(((p1[0] - p2[0])**2) + ((p1[1] - p2[1])**2))
 
     def update_wp_list(self, wp_list_msg):
         """
@@ -74,16 +87,16 @@ class WaypointNavigator:
         :param wp_list_msg: a list of tuples specifying GPS coordinates in the form (long, lat)
         :type wp_list_msg: WaypointList
         """
-        self.wp_list = zip(wp_list_msg.longitudes, wp_list_msg.latitudes)
-        self.next_wp = self.wp_list[0]
-        if self.using_ros:
-            self.publish_desired_heading(self.calculate_desired_heading())
+        self.wp_list = deque(zip(wp_list_msg.longitudes, wp_list_msg.latitudes))  # Use queue of tuples for waypoints
+        self.next_wp = self.wp_list.popleft()  # Get the next waypoint
+        if self.using_ros and self.latitude:  # Don't do if not using ROS or if we don't know our location yet
+            self.heading_pub.publish(self.calculate_desired_heading())
 
     def calculate_desired_heading(self):
         """
         Calculates the heading the boat should be on given its current GPS coordinates
         and the coordinates of the next waypoint.
-        :return: the heading in the range [0, 360), where 0 is north and 90 is east
+        :return: the degree heading in the range [0, 360), where 0 is north and 90 is east
         :rtype: float
         """
         if self.longitude is None:
@@ -91,14 +104,6 @@ class WaypointNavigator:
         delta_x = self.next_wp[0] - self.longitude
         delta_y = self.next_wp[1] - self.latitude
         return math.degrees(math.atan2(delta_y, delta_x))
-
-    def publish_desired_heading(self, theta):
-        """
-        Attempts to publish the desired heading over ROS.
-        :param theta: the heading in the range of [0, 360), where 0 is north and 90 is east
-        :type theta: float
-        """
-        self.heading_pub.publish(theta)
 
 
 if __name__ == '__main__':
