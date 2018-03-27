@@ -1,3 +1,4 @@
+Pillow
 pyserial
 evdev
 socketIO-client-nexus

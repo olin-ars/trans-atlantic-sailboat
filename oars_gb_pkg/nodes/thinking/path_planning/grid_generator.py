@@ -2,22 +2,44 @@
 import rospy
 from sensor_msgs.msg import Image
 from std_msgs.msg import Float32, Header
+from os import path
 from oars_gb.msg import GridMap
-from PIL import Image as IMG
+from PIL import Image as PILImage
 import time
 
-class GridGenerator:
+
+class GridMapGenerator:
     def __init__(self):
         rospy.init_node('grid_generator', anonymous=True)
         self.grid_pub = rospy.Publisher('/planning/map', GridMap, queue_size=0)
         self.image_pub = rospy.Publisher('/planning/image', Image, queue_size=0)
+        self.grid = None
+        self.minLatitude = None
+        self.maxLatitude = None
+        self.minLongitude = None
+        self.maxLongitude = None
 
-    def publish_map(self, map_image, minLat, maxLat, minLong, maxLong):
-        # msg = GridMap(grid = map_image, minLatitude = minLat, maxLatitude = maxLat, \
-        #         minLongitude = minLong, maxLongitude = maxLong)
-        grid_msg = GridMap(grid=map_image, minLatitude=Float32(minLat))
+    def load_image(self, file_path):
+        map_image = PILImage.open(file_path)
+        map_image.load()
+
+        # Resolve the boundary coordinates
+        (directory, filename) = path.split(file_path)
+        name_parts = filename.split('_')
+        self.minLatitude = float(name_parts[1])
+        self.maxLatitude = float(name_parts[2])
+        self.minLongitude = float(name_parts[3])
+        self.maxLongitude = float('.'.join(name_parts[4].split('.')[:-1]))  # Remove the file extension
+
+        self.grid = Grid(map_image)
+
+    def publish_map(self):
+        map_image = self.grid.draw_map()
+        grid_msg = GridMap(grid=map_image, minLatitude=Float32(self.minLatitude), maxLatitude=Float32(self.maxLatitude),
+                           minLongitude=Float32(self.minLongitude), maxLongitude=Float32(self.maxLongitude))
         self.grid_pub.publish(grid_msg)
         self.image_pub.publish(map_image)
+
 
 class Grid():
     def __init__(self, image):
@@ -27,12 +49,12 @@ class Grid():
         self.height = self.width * image.size[1] // image.size[0]
         image.thumbnail((self.width, self.height))
         # Creates empty grid
-        self.grid = [[Cell(coords = (x, y)) for x in range(self.width)] for y in range(self.height)]
+        self.grid = [[Cell(coords=(x, y)) for x in range(self.width)] for y in range(self.height)]
 
         for y in range(self.height):
             for x in range(self.width):
                 pixel = image.getpixel((x, y))
-                if pixel[2] > 210 and pixel[2] > pixel[1]+20:
+                if pixel[2] > 210 and pixel[2] > pixel[1] + 20:
                     self.grid[y][x].is_water = True
 
     def get_cell(self, coords):
@@ -62,8 +84,8 @@ class Grid():
     def add_buffer(self):
         """ Blocks off cells adjacent to non-water cells. Returns nothing, replaces
             the grid with a grid with more blocked-off cells. """
-        buffered_grid = [[Cell(coords = (x, y), is_water = self.safe_distance((x, y))) \
-            for x in range(self.width)] for y in range(self.height)]
+        buffered_grid = [[Cell(coords=(x, y), is_water=self.safe_distance((x, y))) \
+                          for x in range(self.width)] for y in range(self.height)]
         self.grid = buffered_grid
 
     def draw_map(self):
@@ -73,38 +95,34 @@ class Grid():
         height = self.height
         width = self.width
         encoding = 'rgb8'
-        is_bigendian = False
         step = 3 * width
         data = []
 
         for y in range(self.height):
             for x in range(self.width):
                 if self.grid[y][x].is_water:
-                    data.extend([254]*3)
+                    data.extend([254] * 3)
                 else:
-                    data.extend([0]*3)
+                    data.extend([0] * 3)
 
-        img = Image(header = header, height = height, width = width, encoding = encoding, \
-        is_bigendian = is_bigendian, step = step, data = data)
+        img = Image(header=header, height=height, width=width, encoding=encoding, \
+                    is_bigendian=False, step=step, data=data)
         return img
 
+
 class Cell():
-    def __init__(self, coords, lat = 0, lon = 0, is_water = False):
+    def __init__(self, coords, lat=0, lon=0, is_water=False):
         self.is_water = is_water
         self.coords = coords
 
-if __name__ == "__main__":
-    # Load an image to base the map on
-    filename = 'oars_gb_pkg/nodes/thinking/path_planning/lakewaban.png' # + input('Filename: ')
-    map_image = IMG.open(filename)
-    map_image.load()
-    # Make grid of land/water cells based on image
-    grid = Grid(map_image)
-    #grid.add_buffer()
-    map_grid = grid.draw_map()
 
-    g = GridGenerator()
+if __name__ == "__main__":
+    map_generator = GridMapGenerator()
+    # Load an image to base the map on
+    map_generator.load_image(
+        'oars_gb_pkg/nodes/thinking/path_planning/waban_42.282368_42.293353_-71.314756_-71.302289.png')
+
     while True:
-        g.publish_map(map_grid, 42.282368, 42.293353, -71.314756, -71.302289)
+        map_generator.publish_map()
         print("published")
         time.sleep(10)
