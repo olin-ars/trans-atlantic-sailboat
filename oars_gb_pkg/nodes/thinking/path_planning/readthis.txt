@@ -1,0 +1,21 @@
+Grid_generator.py is working, publishing the gridmap every 10 seconds with the
+image and lat/long information.
+
+waypoint_planner.py (the path planner) can read the message, and (tries to) run
+the path planner when it receives a message. The one hiccup I'm encountering is
+I don't know how to translate the image data back into RGB or something where I
+can differentiate black and white. When I print the image, I can see the values
+of either 254 or 0, but when I print image.data I get a bunch of unknown
+characters. Line 61 of waypoint_planner.py needs to be replaced with something
+that reads the data at the location corresponding to x and y and returns either
+the R, G, or B value (just to tell if it's dark or light.) I'm sorry I didn't
+get this done, but I'm hoping it'll be quick for you to read the data since you
+understand better how it's encoded.
+
+I changed the default is_water value in waypoint_planner.py so it should be able
+to find a path if no cells are changed.
+
+Another note: I changed the file path to the lake waban image in the code,
+because running the script from oars_gb_pkg made it unable to find the file
+since oars_gb_pkg/ was in the path. Running from trans-atlantic-sailboat didn't
+seem to work.

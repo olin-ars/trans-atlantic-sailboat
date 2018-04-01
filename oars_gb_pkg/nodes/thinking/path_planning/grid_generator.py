@@ -11,8 +11,8 @@ import time
 class GridMapGenerator:
     def __init__(self):
         rospy.init_node('grid_generator', anonymous=True)
-        self.grid_pub = rospy.Publisher('/planning/map', GridMap, queue_size=0)
-        self.image_pub = rospy.Publisher('/planning/image', Image, queue_size=0)
+        self.grid_pub = rospy.Publisher('/planning/map', GridMap, queue_size=1)
+        self.image_pub = rospy.Publisher('/planning/image', Image, queue_size=1)
         self.grid = None
         self.minLatitude = None
         self.maxLatitude = None
@@ -120,7 +120,7 @@ if __name__ == "__main__":
     map_generator = GridMapGenerator()
     # Load an image to base the map on
     map_generator.load_image(
-        'oars_gb_pkg/nodes/thinking/path_planning/waban_42.282368_42.293353_-71.314756_-71.302289.png')
+        'nodes/thinking/path_planning/waban_42.282368_42.293353_-71.314756_-71.302289.png')
 
     while True:
         map_generator.publish_map()

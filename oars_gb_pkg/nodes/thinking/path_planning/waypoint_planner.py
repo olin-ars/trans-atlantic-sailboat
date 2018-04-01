@@ -1,25 +1,31 @@
 #!/usr/bin/env python
 import rospy
 from sensor_msgs.msg import Image
-from std_msgs.msg import Float32, Pose2D
-from oars_gb_pkg.msg import GridMap
+from std_msgs.msg import Float32
+from geometry_msgs.msg import Pose2D
+from oars_gb.msg import GridMap
 from PIL import Image as IMG
-from oars_gb_package.helpers.waypoint_generator import *
+from oars_gb_pkg.helpers.waypoint_generator import *
 
 class PathPlanner:
+
     def __init__(self):
         # self.image = IMG.open('map_grid.png')
         # self.image.load()
         # self.grid_map = [self.image, 42.282368, 42.293353, -71.314756, -71.302289]
         rospy.init_node('path_planner', anonymous=True)
-        self.grid_map = rospy.Subscriber('/planning/map', GridMap, self.get_waypoints, queue_size = 0)
-        self.waypoint_pub = rospy.Publisher('/planning/waypoints', Pose2D, queue_size=0)
+        self.grid_map = rospy.Subscriber('/planning/map', GridMap, self.get_waypoints, queue_size = 1)
+        self.waypoint_pub = rospy.Publisher('/planning/waypoints', Pose2D, queue_size=1)
+        print('initialized')
+        r = rospy.Rate(2)
+        while not rospy.is_shutdown():
+            r.sleep()
 
-    def get_waypoints(self):
+    def get_waypoints(self, msg):
         # Make grid of land/water cells based on image
-        grid = Grid(self.grid_map[0])
-        lowleft = (self.grid_map[3], self.grid_map[1])
-        topright = (self.grid_map[4], self.grid_map[2])
+        grid = Grid(msg.grid)
+        lowleft = (msg.minLongitude, msg.minLatitude)
+        topright = (msg.maxLongitude, msg.maxLatitude)
         g = AStarPlanner(grid)
         # Find an open starting and ending coordinate
         start = (0, 0)
@@ -41,17 +47,18 @@ class PathPlanner:
 
 class Grid():
     def __init__(self, image):
-    """ Creates a grid of cell objects based on an image. Each image pixel becomes
-    a cell that is water if it's light colored, land if it's dark colored."""
-        self.width = image.size[0]
-        self.height = image.size[1]
+        """ Creates a grid of cell objects based on an image. Each image pixel becomes
+        a cell that is water if it's light colored, land if it's dark colored."""
+        self.width = image.width
+        self.height = image.height
 
         # Creates empty grid
         self.grid = [[Cell(coords = (x, y)) for x in range(self.width)] for y in range(self.height)]
         water = 0
+        print(image.data)
         for y in range(self.height):
             for x in range(self.width):
-                if image.getpixel((x, y))[0] > 128:
+                if image.data[0] > 128: # This does not work
                     self.grid[y][x].is_water = True
 
     def get_cell(self, coords):
@@ -71,7 +78,7 @@ class Grid():
         return valid_x and valid_y
 
 class Cell():
-    def __init__(self, coords, is_water = False):
+    def __init__(self, coords, is_water = True): #change back to false when working
         self.is_water = is_water
         self.coords = coords
         self.g_cost = None
@@ -176,5 +183,4 @@ class AStarPlanner():
         return self.get_path(start_coord, destination_coord)
 
 if __name__ == "__main__":
-    p = PathPlanner()
-    p.get_waypoints()
+    PathPlanner()
