@@ -9,7 +9,7 @@ from geometry_msgs.msg import Pose2D
 from genpy import Message
 from std_msgs.msg import Float32, Float64, Float32MultiArray, Float64MultiArray, String, UInt8
 from sensor_msgs.msg import Image
-from oars_gb.msg import GridMap
+from oars_gb.msg import GridMap, WaypointList
 
 ROS_MSG_TYPES = {
     'Float32': Float32,
@@ -119,7 +119,8 @@ class TelemetryReporter:
         if msg_type == Pose2D:
             return {
                 'x': msg.x,
-                'y': msg.y
+                'y': msg.y,
+                'theta': msg.theta
             }
 
         elif msg_type == Float32 \
@@ -139,6 +140,12 @@ class TelemetryReporter:
                 'minLongitude': msg.minLongitude.data,
                 'maxLongitude': msg.maxLongitude.data
             }
+
+        elif msg_type == WaypointList:
+            points = []
+            for lat, long in zip(msg.latitudes.data, msg.longitudes.data):
+                points.append({'lat': lat, 'long': long})
+            return points
 
         return None
 
@@ -280,5 +287,6 @@ if __name__ == '__main__':
     tr.listen_to_topic('/weather/wind/rel', Pose2D)
     tr.listen_to_topic('/control/heading/error_desired_rudder_pos', Pose2D)
     tr.listen_to_topic('/control/mode', UInt8)
+    tr.listen_to_topic('/planning/waypoints', WaypointList)
 
     tr.connect(server, port, ssl)
