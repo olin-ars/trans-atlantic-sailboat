@@ -7,7 +7,8 @@ import os
 import signal
 from geometry_msgs.msg import Pose2D
 from genpy import Message
-from std_msgs.msg import Float32, Float64, Float32MultiArray, Float64MultiArray, String, UInt8
+from std_msgs.msg import Float32, Float64, Float32MultiArray, Float64MultiArray, String, UInt8, UInt16, UInt32, UInt64,\
+                        UInt8MultiArray, UInt16MultiArray, UInt32MultiArray, UInt64MultiArray
 from sensor_msgs.msg import Image
 from oars_gb.msg import GridMap, WaypointList
 
@@ -21,6 +22,13 @@ ROS_MSG_TYPES = {
     'Pose2D': Pose2D,
     'String': String,
     'UInt8': UInt8,
+    'UInt16': UInt16,
+    'UInt32': UInt32,
+    'UInt64': UInt64,
+    'UInt8MultiArray': UInt8MultiArray,
+    'UInt16MultiArray': UInt16MultiArray,
+    'UInt32MultiArray': UInt32MultiArray,
+    'UInt64MultiArray': UInt64MultiArray,
 }
 ERROR_TOPIC_NAME = '/logging/errors'
 
@@ -51,6 +59,7 @@ class TelemetryReporter:
         self.socketIO = SocketIO(server_address, port, verify=(not use_ssl))
         self.reporter = self.socketIO.define(ReportingNamespace, '/reporting')
         self.reporter.on('publishROSMessage', self._handle_server_publish_msg)
+        self.reporter.on('getTopics', self._handle_get_published_topics_request)
         self.socketIO.wait()  # Don't finish execution
 
     def terminate(self, *args):
@@ -125,7 +134,10 @@ class TelemetryReporter:
 
         elif msg_type == Float32 \
                 or msg_type == Float64 \
-                or msg_type == UInt8:
+                or msg_type == UInt8 \
+                or msg_type == UInt16 \
+                or msg_type == UInt32 \
+                or msg_type == UInt64:
             return msg.data
 
         elif msg_type == Float32MultiArray \
@@ -218,9 +230,10 @@ class TelemetryReporter:
             # TODO Ints and arrays of ints
 
             if msg_type == UInt8 \
+                    or msg_type == UInt16 \
                     or msg_type == Float32 \
                     or msg_type == Float64:  # Numbers
-                return msg_type(data=float(data))
+                return msg_type(data=msg_type(data))
 
             if msg_type == Float32MultiArray or msg_type == Float64MultiArray:  # Array of floating-point numbers
                 return msg_type(data=[float(x) for x in data])
@@ -264,6 +277,23 @@ class TelemetryReporter:
         """
         print(error)
         self.publish_message(ERROR_TOPIC_NAME, String, String(data=error))
+
+    def _handle_get_published_topics_request(self, data):
+        """
+        Gets a list of the published ROS topics and their associated message types
+        :param
+        :return: A list of dictionaries of the form {name: topicName, type: topicType}
+        :rtype list
+        """
+        res = []
+        # Reformat the list items as dictionaries rather than arrays
+        for topic in rospy.get_published_topics():
+            res.append({
+                'name': topic[0],
+                'type': topic[1]
+            })
+        # Send the topics to the server
+        self.reporter.emit('topicList', res)
 
 
 class ReportingNamespace(SocketIONamespace):
