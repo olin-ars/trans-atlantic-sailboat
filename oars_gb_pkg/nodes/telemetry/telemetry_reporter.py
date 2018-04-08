@@ -5,6 +5,7 @@ from datetime import datetime
 import rospy
 import os
 import signal
+import subprocess
 from geometry_msgs.msg import Pose2D
 from genpy import Message
 from std_msgs.msg import Float32, Float64, Float32MultiArray, Float64MultiArray, String, UInt8, UInt16, UInt32, UInt64,\
@@ -42,6 +43,7 @@ class TelemetryReporter:
     def __init__(self):
         self.reporter = None
         self.socketIO = None
+        self.rosbag_process = None
 
         # Register as a ROS node
         rospy.init_node('telemetry_reporter')
@@ -60,6 +62,7 @@ class TelemetryReporter:
         self.reporter = self.socketIO.define(ReportingNamespace, '/reporting')
         self.reporter.on('publishROSMessage', self._handle_server_publish_msg)
         self.reporter.on('getTopics', self._handle_get_published_topics_request)
+        self.reporter.on('startStopRosbag', self.start_stop_rosbag)
         self.socketIO.wait()  # Don't finish execution
 
     def terminate(self, *args):
@@ -294,6 +297,29 @@ class TelemetryReporter:
             })
         # Send the topics to the server
         self.reporter.emit('topicList', res)
+
+    def start_stop_rosbag(self, data):
+        """
+        Handles a request from an observer to start or stop rosbag on the boat.
+        This currently only supports one instance of rosbag. Attempts to start
+        a second instance without first ending the first will be ignored.
+        :param data: the WebSockets message from the observer
+        """
+        if 'action' not in data:
+            return
+
+        action = data['action']
+        if self.rosbag_process and action == 'stop':  # Stop rosbag
+            print('Stopping rosbag...')
+            os.killpg(os.getpgid(self.rosbag_process.pid), signal.SIGINT)
+            self.rosbag_process = None
+
+        elif action == 'start':  # Start rosbag
+            print('Starting rosbag...')
+            cmd = 'rosbag record --all'
+            if 'args' in data:
+                cmd += ' ' + data['args']
+            self.rosbag_process = subprocess.Popen(cmd, cwd=os.environ.get('HOME'), shell=True, preexec_fn=os.setsid)
 
 
 class ReportingNamespace(SocketIONamespace):
