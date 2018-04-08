@@ -35,6 +35,7 @@ class SpektrumRCController:
         :param min_pos: the minimum of its range
         :return: the normalized value (between 0 and 1, inclusive). If the computed value is out of range,
             i.e. < 0 or > 1), it will be rounded to either 0 or 1, respectively.
+        TODO Remove this redundant function (similar one in motor_controller.py)
         """
         res = float(pos - min_pos) / float(max_pos - min_pos)
         if res > 1:
@@ -58,7 +59,7 @@ class SpektrumRCController:
                         self.jib_pos.publish(msg)
 
                     elif event.code == 2:
-                        position = self.normalize(event.value, 1700, 170)
+                        position = self.normalize(event.value, 1700, 170) * 180.0 - 90.0
                         if debug:
                             print('Setting rudder to position {:0.4f}'.format(position))
                         msg = Float32(data=position)
