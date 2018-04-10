@@ -17,7 +17,7 @@ class TestWaypointGeneration(unittest.TestCase):
         self.test_position = Pose2D()
 
     def test_calculate_desired_heading(self):
-        wn = WaypointNavigator(waypoint_reached_radius=0.5, use_ros=False)
+        wn = WaypointNavigator(waypoint_radius=0.5, use_ros=False)
         self.test_position.x = 1
         self.test_position.y = 1
         test_waypoint_list = self.create_waypoint_list([(4,4), (6,6), (6,8), (8,8), (10,8), (11,11), (13,13)])
@@ -28,7 +28,7 @@ class TestWaypointGeneration(unittest.TestCase):
         self.assertEqual(wn.calculate_desired_heading(), 45.0)
 
     def test_have_reached_wp_multiple(self):
-        wn = WaypointNavigator(waypoint_reached_radius=3, use_ros=False)
+        wn = WaypointNavigator(waypoint_radius=3, use_ros=False)
         test_waypoint_list = [(4, 4), (6, 6), (6, 8), (8, 8), (10, 8), (11, 11), (13, 13)]
         wn.update_wp_list(self.create_waypoint_list(test_waypoint_list))
 

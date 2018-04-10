@@ -187,14 +187,15 @@ class TelemetryReporter:
         """
         # Turn the data into a ROS message
         msg = self._build_ros_msg(data, msg_type)
-
-        # Register a publisher if one is not already registered for this topic
-        if topic_name not in self.publishers:
-            self.configure_publisher(topic_name, msg_type)
-            # Note: Messages sent shortly after configuring publisher will likely be lost.
-            # See https://github.com/ros/ros_comm/issues/176 for more info.
-
-        self.publishers[topic_name].publish(msg)
+        
+        if msg is not None:
+            # Register a publisher if one is not already registered for this topic
+            if topic_name not in self.publishers:
+                self.configure_publisher(topic_name, msg_type)
+                # Note: Messages sent shortly after configuring publisher will likely be lost.
+                # See https://github.com/ros/ros_comm/issues/176 for more info.
+    
+            self.publishers[topic_name].publish(msg)
 
     def _convert_unicode(self, data):
         """
@@ -233,10 +234,11 @@ class TelemetryReporter:
             # TODO Ints and arrays of ints
 
             if msg_type == UInt8 \
-                    or msg_type == UInt16 \
-                    or msg_type == Float32 \
-                    or msg_type == Float64:  # Numbers
-                return msg_type(data=msg_type(data))
+                    or msg_type == UInt16:  # Integers
+                return msg_type(data=int(data))
+            if msg_type == Float32 \
+                    or msg_type == Float64:  # Floating-point numbers
+                return msg_type(data=float(data))
 
             if msg_type == Float32MultiArray or msg_type == Float64MultiArray:  # Array of floating-point numbers
                 return msg_type(data=[float(x) for x in data])
@@ -344,5 +346,6 @@ if __name__ == '__main__':
     tr.listen_to_topic('/control/heading/error_desired_rudder_pos', Pose2D)
     tr.listen_to_topic('/control/mode', UInt8)
     tr.listen_to_topic('/planning/waypoints', WaypointList)
+    tr.listen_to_topic('/planning/waypoint_radius', UInt16)
 
     tr.connect(server, port, ssl)
