@@ -2,7 +2,7 @@
 import rospy
 from array import array
 from geometry_msgs.msg import Pose2D
-from oars_gb.msg import GridMap
+from oars_gb.msg import GridMap, WaypointList
 from oars_gb_pkg.helpers.path_planning import *
 from oars_gb_pkg.helpers.path_planning.waypoint_generator import *
 
@@ -27,8 +27,8 @@ class PathPlanner:
             rospy.Subscriber('/planning/map', GridMap, self.received_grid_map_msg, queue_size=1)
             rospy.Subscriber('/boat/position', Pose2D, self.received_boat_pos_msg, queue_size=1)
             rospy.Subscriber('/planning/goal_pos', Pose2D, self.received_desired_pos_msg, queue_size=1)
-            # NEED TO RECEIVE WIND MSG AND DESIRED POS MSG
-            self.waypoint_pub = rospy.Publisher('/planning/waypoints', Pose2D, queue_size=1)
+            # NEED TO RECEIVE WIND MSG
+            self.waypoint_pub = rospy.Publisher('/planning/waypoints', WaypointList, queue_size=1)
 
             print('Waypoint planner node initialized')
 
@@ -106,12 +106,14 @@ class PathPlanner:
         # Run the path planner and save the path in an image
         path = planner.plan(start, end)
         waypoints = make_waypoints(path)
-        gps_waypoints = []
+        gps_waypoints_lat = []
+        gps_waypoints_long = []
         for point in waypoints:
             gps_point = cell_to_gps_coords(point, self.grid_lower_left_coord, self.grid_upper_right_coord, self.grid_map.width, self.grid_map.height)
-            gps_waypoints.append(Pose2D(gps_point[0], gps_point[1], 0))
-        print(gps_waypoints)
+            gps_waypoints_lat.append(gps_point[0])
+            gps_waypoints_lat.append(gps_point[1])
         if self.using_ros:
+            gps_waypoints = WaypointList(latitudes = gps_waypoints_lat, longitudes = gps_waypoints_long)
             self.waypoint_pub.publish(gps_waypoints)
             print('published')
         return gps_waypoints
