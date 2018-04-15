@@ -1,0 +1,2 @@
+std_msgs/Float32MultiArray latitudes
+std_msgs/Float32MultiArray longitudes

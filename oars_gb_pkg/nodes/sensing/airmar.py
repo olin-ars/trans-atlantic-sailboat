@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import rospy
 import serial
-from std_msgs.msg import Float32, String, Float32MultiArray
+from std_msgs.msg import Float32, String
 from geometry_msgs.msg import Pose2D
 from oars_gb_pkg.utils.serial_utils import resolve_device_port
 
@@ -140,8 +140,6 @@ class AirmarParser:
         """
             Parses the GPGLL message containing the position from GPS and publishes it over ROS.
         """
-
-    def parse_gps_message(self, msg):
         def convert_angle(string, sign):
             if not string:
                 return 0

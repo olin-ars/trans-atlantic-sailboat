@@ -5,11 +5,13 @@ from datetime import datetime
 import rospy
 import os
 import signal
+import subprocess
 from geometry_msgs.msg import Pose2D
 from genpy import Message
-from std_msgs.msg import Float32, Float64, Float32MultiArray, Float64MultiArray, String
+from std_msgs.msg import Float32, Float64, Float32MultiArray, Float64MultiArray, String, UInt8, UInt16, UInt32, UInt64,\
+                        UInt8MultiArray, UInt16MultiArray, UInt32MultiArray, UInt64MultiArray
 from sensor_msgs.msg import Image
-from oars_gb.msg import GridMap
+from oars_gb.msg import GridMap, WaypointList
 
 ROS_MSG_TYPES = {
     'Float32': Float32,
@@ -20,6 +22,14 @@ ROS_MSG_TYPES = {
     'Image': Image,
     'Pose2D': Pose2D,
     'String': String,
+    'UInt8': UInt8,
+    'UInt16': UInt16,
+    'UInt32': UInt32,
+    'UInt64': UInt64,
+    'UInt8MultiArray': UInt8MultiArray,
+    'UInt16MultiArray': UInt16MultiArray,
+    'UInt32MultiArray': UInt32MultiArray,
+    'UInt64MultiArray': UInt64MultiArray,
 }
 ERROR_TOPIC_NAME = '/logging/errors'
 
@@ -33,6 +43,7 @@ class TelemetryReporter:
     def __init__(self):
         self.reporter = None
         self.socketIO = None
+        self.rosbag_process = None
 
         # Register as a ROS node
         rospy.init_node('telemetry_reporter')
@@ -50,6 +61,8 @@ class TelemetryReporter:
         self.socketIO = SocketIO(server_address, port, verify=(not use_ssl))
         self.reporter = self.socketIO.define(ReportingNamespace, '/reporting')
         self.reporter.on('publishROSMessage', self._handle_server_publish_msg)
+        self.reporter.on('getTopics', self._handle_get_published_topics_request)
+        self.reporter.on('startStopRosbag', self.start_stop_rosbag)
         self.socketIO.wait()  # Don't finish execution
 
     def terminate(self, *args):
@@ -118,11 +131,16 @@ class TelemetryReporter:
         if msg_type == Pose2D:
             return {
                 'x': msg.x,
-                'y': msg.y
+                'y': msg.y,
+                'theta': msg.theta
             }
 
         elif msg_type == Float32 \
-                or msg_type == Float64:
+                or msg_type == Float64 \
+                or msg_type == UInt8 \
+                or msg_type == UInt16 \
+                or msg_type == UInt32 \
+                or msg_type == UInt64:
             return msg.data
 
         elif msg_type == Float32MultiArray \
@@ -137,6 +155,12 @@ class TelemetryReporter:
                 'minLongitude': msg.minLongitude.data,
                 'maxLongitude': msg.maxLongitude.data
             }
+
+        elif msg_type == WaypointList:
+            points = []
+            for lat, long in zip(msg.latitudes.data, msg.longitudes.data):
+                points.append({'lat': lat, 'long': long})
+            return points
 
         return None
 
@@ -163,14 +187,15 @@ class TelemetryReporter:
         """
         # Turn the data into a ROS message
         msg = self._build_ros_msg(data, msg_type)
-
-        # Register a publisher if one is not already registered for this topic
-        if topic_name not in self.publishers:
-            self.configure_publisher(topic_name, msg_type)
-            # Note: Messages sent shortly after configuring publisher will likely be lost.
-            # See https://github.com/ros/ros_comm/issues/176 for more info.
-
-        self.publishers[topic_name].publish(msg)
+        
+        if msg is not None:
+            # Register a publisher if one is not already registered for this topic
+            if topic_name not in self.publishers:
+                self.configure_publisher(topic_name, msg_type)
+                # Note: Messages sent shortly after configuring publisher will likely be lost.
+                # See https://github.com/ros/ros_comm/issues/176 for more info.
+    
+            self.publishers[topic_name].publish(msg)
 
     def _convert_unicode(self, data):
         """
@@ -208,7 +233,11 @@ class TelemetryReporter:
         try:
             # TODO Ints and arrays of ints
 
-            if msg_type == Float32 or msg_type == Float64:  # Floating-point number
+            if msg_type == UInt8 \
+                    or msg_type == UInt16:  # Integers
+                return msg_type(data=int(data))
+            if msg_type == Float32 \
+                    or msg_type == Float64:  # Floating-point numbers
                 return msg_type(data=float(data))
 
             if msg_type == Float32MultiArray or msg_type == Float64MultiArray:  # Array of floating-point numbers
@@ -216,6 +245,10 @@ class TelemetryReporter:
 
             if msg_type == String:
                 return msg_type(data=data)
+
+            if msg_type == Pose2D and 'x' in data and 'y' in data:
+                return Pose2D(x=float(data['x']), y=float(data['y']))
+
         except ValueError:
             error_msg = 'Problem parsing data: ' + data + '. Supposed to be of type ' + str(msg_type)
             self.publish_message(ERROR_TOPIC_NAME, String, error_msg)
@@ -254,6 +287,46 @@ class TelemetryReporter:
         print(error)
         self.publish_message(ERROR_TOPIC_NAME, String, String(data=error))
 
+    def _handle_get_published_topics_request(self, data):
+        """
+        Gets a list of the published ROS topics and their associated message types
+        :param
+        :return: A list of dictionaries of the form {name: topicName, type: topicType}
+        :rtype list
+        """
+        res = []
+        # Reformat the list items as dictionaries rather than arrays
+        for topic in rospy.get_published_topics():
+            res.append({
+                'name': topic[0],
+                'type': topic[1]
+            })
+        # Send the topics to the server
+        self.reporter.emit('topicList', res)
+
+    def start_stop_rosbag(self, data):
+        """
+        Handles a request from an observer to start or stop rosbag on the boat.
+        This currently only supports one instance of rosbag. Attempts to start
+        a second instance without first ending the first will be ignored.
+        :param data: the WebSockets message from the observer
+        """
+        if 'action' not in data:
+            return
+
+        action = data['action']
+        if self.rosbag_process and action == 'stop':  # Stop rosbag
+            print('Stopping rosbag...')
+            os.killpg(os.getpgid(self.rosbag_process.pid), signal.SIGINT)
+            self.rosbag_process = None
+
+        elif action == 'start':  # Start rosbag
+            print('Starting rosbag...')
+            cmd = 'rosbag record --all'
+            if 'args' in data:
+                cmd += ' ' + data['args']
+            self.rosbag_process = subprocess.Popen(cmd, cwd=os.environ.get('HOME'), shell=True, preexec_fn=os.setsid)
+
 
 class ReportingNamespace(SocketIONamespace):
 
@@ -272,7 +345,12 @@ if __name__ == '__main__':
     # Register topic listeners
     tr.listen_to_topic('/boat/heading', Float32)
     tr.listen_to_topic('/boat/position', Pose2D)
-    tr.listen_to_topic('/weather/wind/rel', Float32MultiArray)
+    tr.listen_to_topic('/rudder_pos', Float32)
+    tr.listen_to_topic('/weather/wind/rel', Pose2D)
     tr.listen_to_topic('/control/heading/error_desired_rudder_pos', Pose2D)
+    tr.listen_to_topic('/control/mode', UInt8)
+    tr.listen_to_topic('/planning/goal_pos', Pose2D)
+    tr.listen_to_topic('/planning/waypoints', WaypointList)
+    tr.listen_to_topic('/planning/waypoint_radius', UInt16)
 
     tr.connect(server, port, ssl)
