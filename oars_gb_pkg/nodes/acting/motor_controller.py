@@ -2,7 +2,7 @@
 import rospy
 from std_msgs.msg import Float32
 try:
-    from oars_gb_pkg.libraries.dynamixels.dynamixel_motor import DynamixelMotor
+    from oars_gb_pkg.helpers.dynamixels.dynamixel_motor import DynamixelMotor
     from oars_gb_pkg.utils.serial_utils import resolve_device_port
 except EnvironmentError:
     print('Did not find Dynamixel driver, proceeding without Motor Controller')
@@ -10,6 +10,7 @@ except EnvironmentError:
 
 
 class MotorController:
+
     MAIN_PROFILE = {
         'id': 1,
         'min': 0,

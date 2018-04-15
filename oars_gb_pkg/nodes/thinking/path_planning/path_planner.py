@@ -1,139 +1,123 @@
-import pygame
-# http://www.raywenderlich.com/4946/introduction-to-a-pathfinding
+#!/usr/bin/env python
+import rospy
+from array import array
+from geometry_msgs.msg import Pose2D
+from oars_gb.msg import GridMap, WaypointList
+from oars_gb_pkg.helpers.path_planning import *
+from oars_gb_pkg.helpers.path_planning.waypoint_generator import *
 
 
-class GridMap():
-    """ Grid world that contains Pauls (and other things) living in cells. """
-    def __init__(self, width=10, height=10):
-        self.grid = [[Cell(coords = (i, j)) for j in range(width)] for i in range(height)]
-        self.width = width
-        self.height = height
+class PathPlanner:
 
-    def get_cell(self, coords):
-        return self.grid[coords[1]][coords[0]]
+    def __init__(self, using_ros=True):
+        self.current_pos = None
+        self.goal_pos = None
+        self.wind_angle = None
+        self.wind_speed = None
+        self.grid_map = None
+        self.grid_lower_left_coord = None
+        self.grid_upper_right_coord = None
+        self.using_ros = using_ros
 
-    def _add_coords(self, a, b):
-        """ Returns a third coord that is equivalent to
-            (a[0]+b[0], a[1]+b[1]) """
-        return tuple(map(sum, zip(a, b)))
+        if self.using_ros:
+            # Register the node
+            rospy.init_node('path_planner', anonymous=True)
 
-    def _is_in_grid(self, cell_coord):
-        """ tells us whether cell_coord is valid and in range of the actual
-            grid dimensions """
-        valid_x = (-1 < cell_coord[0] < self.width)
-        valid_y = (-1 < cell_coord[1] < self.height)
-        return valid_x and valid_y
+            # Register the publishers and subscribers
+            rospy.Subscriber('/planning/map', GridMap, self.received_grid_map_msg, queue_size=1)
+            rospy.Subscriber('/boat/position', Pose2D, self.received_boat_pos_msg, queue_size=1)
+            rospy.Subscriber('/planning/goal_pos', Pose2D, self.received_desired_pos_msg, queue_size=1)
+            # NEED TO RECEIVE WIND MSG
+            self.waypoint_pub = rospy.Publisher('/planning/waypoints', WaypointList, queue_size=1)
 
-class Cell():
-    def __init__(self, coords, is_water = True):
-        self.is_water = is_water
-        self.coords = coords
-        self.g_cost = None
-        self.h_cost = None
-        self.parents_coords = None
+            print('Waypoint planner node initialized')
 
-    @property
-    def f_cost(self):
-        if self.g_cost is None or self.h_cost is None:
-            return None
-        return self.g_cost + self.h_cost
+            # Now just twiddle our thumbs until we need to do something
+            r = rospy.Rate(2)
+            while not rospy.is_shutdown():
+                self.plan_path()
+                r.sleep()
 
+    def received_boat_pos_msg(self, msg):
+        """
+        Called when a ROS message is received containing the boat's current GPS coordinates.
+        :param msg: a ROS message where x and y correspond to the longitude and latitude, respectively, of the boat
+        :type msg: Pose2D
+        """
+        print('received_boat_pos_msg')
+        self.current_pos = (msg.x, msg.y)
 
-class AStarPlanner():
-    def __init__(self, grid):
-        self.grid = grid
-        self.open_list = []
-        self.closed_list = []
+    def received_desired_pos_msg(self, msg):
+        """
+        Called when a ROS message is received containing the goal position's GPS coordinates.
+        :param msg: a ROS message where x and y correspond to the longitude and latitude, respectively
+        :type msg: Pose2D
+        """
+        print('received_desired_pos_msg')
+        self.goal_pos = (msg.x, msg.y)
 
-    def get_h_cost(self, coord_a, coord_b):
-        """ returns the h score, the manhattan distance between coord_a and
-            the coord_b. """
-        return abs(coord_a[0] - coord_b[0]) + abs(coord_a[1] - coord_b[1])
+    def received_wind_msg(self, msg):
+        """
+        Called when a ROS message is received containing information about the wind.
+        :param msg: a ROS message where x and theta correspond to the speed and direction, respectively, of the wind
+        :type msg: Pose2D
+        """
+        self.wind_speed = msg.x.data
+        self.wind_angle = msg.theta.data
 
-    def get_open_adj_coords(self, coords):
-        """ returns list of valid coords that are adjacent to the argument,
-            open, and not in the closed list. """
-        # modify directions and costs as needed
-        directions = [(1, 0), (0, 1), (-1, 0), (0, -1), (1, 1), (1, -1), (-1, -1), (-1, 1)]
-        all_adj = [self.grid._add_coords(coords, d) for d in directions]
-        all_costs = [2, 100, 2, 10, 1, 1, 1, 1]
-        in_bounds = [self.is_valid(c) for c in all_adj]
-        costs = []
-        open_adj = []
-        for i, coord in enumerate(all_adj):
-            if(in_bounds[i]):
-                costs.append(all_costs[i])
-                open_adj.append(coord)
-        return open_adj, costs
+    def received_grid_map_msg(self, msg):
+        """
+        Called when a ROS message is received containing a GridMap.
+        :param msg: the ROS message
+        :type msg: GridMap
+        """
+        # Convert the ROS Image message to a Grid
+        print('received_boat_pos_msg')
+        msg.grid.data = list(array("B", msg.grid.data))
+        self.grid_map = Grid(msg.grid)
+        self.grid_lower_left_coord = (msg.minLongitude, msg.minLatitude)
+        self.grid_upper_right_coord = (msg.maxLongitude, msg.maxLatitude)
 
-    def is_valid(self, coord):
-        return self.grid._is_in_grid(coord) \
-            and self.grid.get_cell(coord).is_water \
-            and coord not in self.closed_list
+    def plan_path(self):
+        """
+        Calculates the best course to follow given the boat's current position, desired end location, and environment
+        conditions.
+        :return: a list of waypoints (tuples) to navigate, or None if we don't possess the needed inputs
+        """
+        # Make sure we have the info we need to plan a path
+        if self.current_pos is None or self.goal_pos is None or self.grid_map is None:
+            # or self.wind_angle is None (once that exists)
+            print('not enough information')
+            return
 
-    def get_lowest_cost_open_coord(self):
-        sorted_cells = sorted(self.open_list, key=lambda cell: self.grid.get_cell(cell).f_cost)
-        return sorted_cells[0]
+        # TODO Incorporate actual wind direction in planning
 
-    def get_path(self, start_coord, destination_coord):
-        """ Follows cell parents backwards until the initial cell is reached to
-            create a path, which is the list of coordinates that paul will
-            travel through to reach the destination. """
-        coord_list = [destination_coord]
-        print("final cost is {}".format(self.grid.get_cell(coord_list[-1]).f_cost))
-        path = []
-        while coord_list[-1] is not None:
-            try:
-                parent = self.grid.get_cell(coord_list[-1]).parents_coords
-                coord_list.append(parent)
-            except:
-                print('No path found to destination coord!')
-                break
-        for coord in coord_list:
-            if coord is not None:
-                path.append(coord)
-        path.reverse()
-        return path
-
-    def run(self, start_coord, destination_coord):
-        """ Updates cells g,h,f, and parent coordinates until the destination
-            square is found. """
-        self.open_list = [start_coord]
-        self.closed_list = []
-        self.destination_coord = destination_coord
-        cell_s = self.grid.get_cell(start_coord)
-        cell_s.g_cost = 0
-        cell_s.h_cost = self.get_h_cost(start_coord, destination_coord)
-        self.open_list = [start_coord]
-        while len(self.open_list) > 0:
-            start_coord = self.get_lowest_cost_open_coord()
-            cell_s = self.grid.get_cell(start_coord)
-            self.open_list.remove(start_coord)
-            self.closed_list.append(start_coord)
-            walkable_open_coords, costs = self.get_open_adj_coords(start_coord)
-            for idx, coord in enumerate(walkable_open_coords):
-                cell = self.grid.get_cell(coord)
-                g_cost = cell_s.g_cost + costs[idx]
-                h_cost = self.get_h_cost(coord, destination_coord)
-                f_cost = g_cost + h_cost
-                if coord in self.open_list:
-                    old_f_cost = cell.f_cost
-                    if f_cost < old_f_cost:
-                        cell.g_cost = g_cost
-                        cell.h_cost = h_cost
-                        cell.parents_coords = start_coord
-                else:
-                    self.open_list.append(coord)
-                    cell.g_cost = g_cost
-                    cell.h_cost = h_cost
-                    cell.parents_coords = start_coord
-
-        return self.get_path(start_coord, destination_coord)
+        # Plan a path based on the map and our current location and environment conditions
+        planner = AStarPlanner(self.grid_map)
+        # Find an open starting and ending coordinate
+        start = gps_coords_to_cell(self.current_pos, self.grid_lower_left_coord, self.grid_upper_right_coord, self.grid_map.width, self.grid_map.height)
+        end = gps_coords_to_cell(self.goal_pos, self.grid_lower_left_coord, self.grid_upper_right_coord, self.grid_map.width, self.grid_map.height)
+        print(start, end)
+        while not self.grid_map.get_cell(start).is_water:
+            start = (start[0] + 1, start[1] + 1)
+        while not self.grid_map.get_cell(end).is_water:
+            end = (end[0] - 1, end[1] - 1)
+        print(start, end)
+        # Run the path planner and save the path in an image
+        path = planner.plan(start, end)
+        waypoints = make_waypoints(path)
+        gps_waypoints_lat = []
+        gps_waypoints_long = []
+        for point in waypoints:
+            gps_point = cell_to_gps_coords(point, self.grid_lower_left_coord, self.grid_upper_right_coord, self.grid_map.width, self.grid_map.height)
+            gps_waypoints_lat.append(gps_point[0])
+            gps_waypoints_lat.append(gps_point[1])
+        if self.using_ros:
+            gps_waypoints = WaypointList(latitudes = gps_waypoints_lat, longitudes = gps_waypoints_long)
+            self.waypoint_pub.publish(gps_waypoints)
+            print('published')
+        return gps_waypoints
 
 
 if __name__ == "__main__":
-    grid = GridMap(4, 4)
-    grid.get_cell((1, 1)).is_water = False
-    g = AStarPlanner(grid)
-    path = g.run((0,0), (3,3))
-    print(path)
+    PathPlanner()
