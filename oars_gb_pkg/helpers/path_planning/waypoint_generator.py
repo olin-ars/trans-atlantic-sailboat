@@ -84,8 +84,8 @@ def cell_to_gps_coords(coord, p1, p2, cols, rows):
     p1_x, p1_y = p1
     p2_x, p2_y = p2
 
-    dx = p2_x - p1_x
-    dy = p2_y - p1_y
+    dx = p2_x.data - p1_x.data
+    dy = p2_y.data - p1_y.data
 
     row_width = dy / rows
     col_width = dx / cols
@@ -95,10 +95,42 @@ def cell_to_gps_coords(coord, p1, p2, cols, rows):
     dx_gps_pos = (col_width * x_val) + (0.5 * col_width)
     dy_gps_pos = (row_width * y_val) + (0.5 * row_width)
 
-    x_gps_coord = p1_x + dx_gps_pos
-    y_gps_coord = p1_y + dy_gps_pos
+    x_gps_coord = p1_x.data + dx_gps_pos
+    y_gps_coord = p1_y.data + dy_gps_pos
 
     return x_gps_coord, y_gps_coord
+
+def gps_coords_to_cell(coord, p1, p2, cols, rows):
+    """
+    Converts cell coordinates to GPS coordinates
+
+    :param coord: tuple of cell coordinate
+    :param p1: bottom left coordinate position
+    :param p2: top right coordinate position
+    :param rows: number of rows
+    :param cols: number of columns
+
+    :return tuple of GPS coordinates
+    """
+
+    p1_x, p1_y = p1
+    p2_x, p2_y = p2
+
+    dx = p2_x.data - p1_x.data
+    dy = p2_y.data - p1_y.data
+
+    f = rows / dy
+    g = cols / dx
+
+    x_pos, y_pos = coord
+
+    x_pos -= p1_x.data
+    y_pos -= p1_y.data
+
+    cell_x = int(g * x_pos)
+    cell_y = int(f * y_pos)
+
+    return cell_x, cell_y
 
 
 if __name__ == "__main__":

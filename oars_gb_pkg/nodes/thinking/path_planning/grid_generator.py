@@ -122,7 +122,7 @@ if __name__ == "__main__":
     map_generator.load_image(
         'nodes/thinking/path_planning/waban_42.282368_42.293353_-71.314756_-71.302289.png')
 
-    while True:
+    while not rospy.is_shutdown():
         map_generator.publish_map()
         print("published")
         time.sleep(10)

@@ -4,6 +4,7 @@ from array import array
 from geometry_msgs.msg import Pose2D
 from oars_gb.msg import GridMap
 from oars_gb_pkg.helpers.path_planning import *
+from oars_gb_pkg.helpers.path_planning.waypoint_generator import *
 
 
 class PathPlanner:
@@ -24,7 +25,9 @@ class PathPlanner:
 
             # Register the publishers and subscribers
             rospy.Subscriber('/planning/map', GridMap, self.received_grid_map_msg, queue_size=1)
-            rospy.Subscriber('/boat/position', Pose2D, self.received_grid_map_msg, queue_size=1)
+            rospy.Subscriber('/boat/position', Pose2D, self.received_boat_pos_msg, queue_size=1)
+            rospy.Subscriber('/planning/goal_pos', Pose2D, self.received_desired_pos_msg, queue_size=1)
+            # NEED TO RECEIVE WIND MSG AND DESIRED POS MSG
             self.waypoint_pub = rospy.Publisher('/planning/waypoints', Pose2D, queue_size=1)
 
             print('Waypoint planner node initialized')
@@ -41,7 +44,8 @@ class PathPlanner:
         :param msg: a ROS message where x and y correspond to the longitude and latitude, respectively, of the boat
         :type msg: Pose2D
         """
-        self.current_pos = (msg.x.data, msg.y.data)
+        print('received_boat_pos_msg')
+        self.current_pos = (msg.x, msg.y)
 
     def received_desired_pos_msg(self, msg):
         """
@@ -49,7 +53,8 @@ class PathPlanner:
         :param msg: a ROS message where x and y correspond to the longitude and latitude, respectively
         :type msg: Pose2D
         """
-        self.goal_pos = (msg.x.data, msg.y.data)
+        print('received_desired_pos_msg')
+        self.goal_pos = (msg.x, msg.y)
 
     def received_wind_msg(self, msg):
         """
@@ -67,6 +72,7 @@ class PathPlanner:
         :type msg: GridMap
         """
         # Convert the ROS Image message to a Grid
+        print('received_boat_pos_msg')
         msg.grid.data = list(array("B", msg.grid.data))
         self.grid_map = Grid(msg.grid)
         self.grid_lower_left_coord = (msg.minLongitude, msg.minLatitude)
@@ -79,7 +85,9 @@ class PathPlanner:
         :return: a list of waypoints (tuples) to navigate, or None if we don't possess the needed inputs
         """
         # Make sure we have the info we need to plan a path
-        if self.current_pos is None or self.goal_pos is None or self.wind_angle is None or self.grid_map is None:
+        if self.current_pos is None or self.goal_pos is None or self.grid_map is None:
+            # or self.wind_angle is None (once that exists)
+            print('not enough information')
             return
 
         # TODO Incorporate actual wind direction in planning
@@ -87,22 +95,25 @@ class PathPlanner:
         # Plan a path based on the map and our current location and environment conditions
         planner = AStarPlanner(self.grid_map)
         # Find an open starting and ending coordinate
-        start = self.current_pos
-        end = self.goal_pos
+        start = gps_coords_to_cell(self.current_pos, self.grid_lower_left_coord, self.grid_upper_right_coord, self.grid_map.width, self.grid_map.height)
+        end = gps_coords_to_cell(self.goal_pos, self.grid_lower_left_coord, self.grid_upper_right_coord, self.grid_map.width, self.grid_map.height)
+        print(start, end)
         while not self.grid_map.get_cell(start).is_water:
             start = (start[0] + 1, start[1] + 1)
         while not self.grid_map.get_cell(end).is_water:
             end = (end[0] - 1, end[1] - 1)
+        print(start, end)
         # Run the path planner and save the path in an image
         path = planner.plan(start, end)
         waypoints = make_waypoints(path)
         gps_waypoints = []
         for point in waypoints:
             gps_point = cell_to_gps_coords(point, self.grid_lower_left_coord, self.grid_upper_right_coord, self.grid_map.width, self.grid_map.height)
-            gps_waypoints.append(Pose2D(gps_point))
-
+            gps_waypoints.append(Pose2D(gps_point[0], gps_point[1], 0))
+        print(gps_waypoints)
         if self.using_ros:
             self.waypoint_pub.publish(gps_waypoints)
+            print('published')
         return gps_waypoints
 
 
