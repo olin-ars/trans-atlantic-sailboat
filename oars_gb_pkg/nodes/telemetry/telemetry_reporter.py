@@ -245,6 +245,10 @@ class TelemetryReporter:
 
             if msg_type == String:
                 return msg_type(data=data)
+
+            if msg_type == Pose2D and 'x' in data and 'y' in data:
+                return Pose2D(x=float(data['x']), y=float(data['y']))
+
         except ValueError:
             error_msg = 'Problem parsing data: ' + data + '. Supposed to be of type ' + str(msg_type)
             self.publish_message(ERROR_TOPIC_NAME, String, error_msg)
@@ -345,6 +349,7 @@ if __name__ == '__main__':
     tr.listen_to_topic('/weather/wind/rel', Pose2D)
     tr.listen_to_topic('/control/heading/error_desired_rudder_pos', Pose2D)
     tr.listen_to_topic('/control/mode', UInt8)
+    tr.listen_to_topic('/planning/goal_pos', Pose2D)
     tr.listen_to_topic('/planning/waypoints', WaypointList)
     tr.listen_to_topic('/planning/waypoint_radius', UInt16)
 
