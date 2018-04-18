@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import rospy
 from array import array
+from std_msgs.msg import Float32MultiArray
 from geometry_msgs.msg import Pose2D
 from oars_gb.msg import GridMap, WaypointList
 from oars_gb_pkg.helpers.path_planning import *
@@ -27,6 +28,7 @@ class PathPlanner:
             rospy.Subscriber('/planning/map', GridMap, self.received_grid_map_msg, queue_size=1)
             rospy.Subscriber('/boat/position', Pose2D, self.received_boat_pos_msg, queue_size=1)
             rospy.Subscriber('/planning/goal_pos', Pose2D, self.received_desired_pos_msg, queue_size=1)
+            rospy.Subscriber('/weather/wind/true', Pose2D, self.received_wind_msg, queue_size=1)
             # NEED TO RECEIVE WIND MSG
             self.waypoint_pub = rospy.Publisher('/planning/waypoints', WaypointList, queue_size=1)
 
@@ -62,8 +64,9 @@ class PathPlanner:
         :param msg: a ROS message where x and theta correspond to the speed and direction, respectively, of the wind
         :type msg: Pose2D
         """
-        self.wind_speed = msg.x.data
-        self.wind_angle = msg.theta.data
+        print('Received wind velocity message')
+        self.wind_speed = msg.x
+        self.wind_angle = msg.theta
 
     def received_grid_map_msg(self, msg):
         """
@@ -72,7 +75,7 @@ class PathPlanner:
         :type msg: GridMap
         """
         # Convert the ROS Image message to a Grid
-        print('received_boat_pos_msg')
+        print('Received map message')
         msg.grid.data = list(array("B", msg.grid.data))
         self.grid_map = Grid(msg.grid)
         self.grid_lower_left_coord = (msg.minLongitude, msg.minLatitude)
@@ -107,13 +110,17 @@ class PathPlanner:
         path = planner.plan(start, end)
         waypoints = make_waypoints(path)
         gps_waypoints_lat = []
-        gps_waypoints_long = []
+        gps_waypoints_lon = []
         for point in waypoints:
             gps_point = cell_to_gps_coords(point, self.grid_lower_left_coord, self.grid_upper_right_coord, self.grid_map.width, self.grid_map.height)
             gps_waypoints_lat.append(gps_point[0])
-            gps_waypoints_lat.append(gps_point[1])
+            gps_waypoints_lon.append(gps_point[1])
+
+        gps_waypoints = WaypointList(
+            latitudes=Float32MultiArray(data=gps_waypoints_lat),
+            longitudes=Float32MultiArray(data=gps_waypoints_lon)
+        )
         if self.using_ros:
-            gps_waypoints = WaypointList(latitudes = gps_waypoints_lat, longitudes = gps_waypoints_long)
             self.waypoint_pub.publish(gps_waypoints)
             print('published')
         return gps_waypoints

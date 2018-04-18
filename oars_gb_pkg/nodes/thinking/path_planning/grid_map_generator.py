@@ -1,23 +1,33 @@
 #!/usr/bin/env python
-import rospy
-from sensor_msgs.msg import Image
-from std_msgs.msg import Float32, Header
 from os import path
-from oars_gb.msg import GridMap
 from PIL import Image as PILImage
 import time
+try:
+    import rospy
+    from sensor_msgs.msg import Image
+    from std_msgs.msg import Float32, Header
+    from oars_gb.msg import GridMap
+except ImportError:
+    rospy = None
+    from tests.mock_ros_msgs import Image, Header, Float32, GridMap
 
 
 class GridMapGenerator:
-    def __init__(self):
-        rospy.init_node('grid_generator', anonymous=True)
-        self.grid_pub = rospy.Publisher('/planning/map', GridMap, queue_size=1)
-        self.image_pub = rospy.Publisher('/planning/image', Image, queue_size=1)
+    def __init__(self, using_ros=True):
         self.grid = None
         self.minLatitude = None
         self.maxLatitude = None
         self.minLongitude = None
         self.maxLongitude = None
+        self.using_ros = rospy and using_ros
+
+        if self.using_ros:
+            rospy.init_node('grid_generator')
+            self.grid_pub = rospy.Publisher('/planning/map', GridMap, queue_size=1)
+            self.image_pub = rospy.Publisher('/planning/image', Image, queue_size=1)
+            print('Grid generator node started')
+        else:
+            print('Running GridMapGenerator in unit test mode')
 
     def load_image(self, file_path):
         map_image = PILImage.open(file_path)
@@ -37,8 +47,10 @@ class GridMapGenerator:
         map_image = self.grid.draw_map()
         grid_msg = GridMap(grid=map_image, minLatitude=Float32(self.minLatitude), maxLatitude=Float32(self.maxLatitude),
                            minLongitude=Float32(self.minLongitude), maxLongitude=Float32(self.maxLongitude))
-        self.grid_pub.publish(grid_msg)
-        self.image_pub.publish(map_image)
+        if self.using_ros:
+            self.grid_pub.publish(grid_msg)
+            self.image_pub.publish(map_image)
+        return grid_msg
 
 
 class Grid():
@@ -119,8 +131,7 @@ class Cell():
 if __name__ == "__main__":
     map_generator = GridMapGenerator()
     # Load an image to base the map on
-    map_generator.load_image(
-        'nodes/thinking/path_planning/waban_42.282368_42.293353_-71.314756_-71.302289.png')
+    map_generator.load_image('maps/waban_42.282368_42.293353_-71.314756_-71.302289.png')
 
     while not rospy.is_shutdown():
         map_generator.publish_map()
