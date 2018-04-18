@@ -107,7 +107,7 @@ class PathPlanner:
             end = (end[0] - 1, end[1] - 1)
         print(start, end)
         # Run the path planner and save the path in an image
-        path = planner.plan(start, end)
+        path = planner.plan(start, end, self.wind_angle)
         waypoints = make_waypoints(path)
         gps_waypoints_lat = []
         gps_waypoints_lon = []
