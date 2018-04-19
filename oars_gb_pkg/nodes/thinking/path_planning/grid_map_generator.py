@@ -4,12 +4,11 @@ from PIL import Image as PILImage
 import time
 try:
     import rospy
-    from sensor_msgs.msg import Image
     from std_msgs.msg import Float32, Header
     from oars_gb.msg import GridMap
 except ImportError:
     rospy = None
-    from tests.mock_ros_msgs import Image, Header, Float32, GridMap
+    from tests.mock_ros_msgs import Header, Float32, GridMap
 
 
 class GridMapGenerator:
@@ -24,7 +23,6 @@ class GridMapGenerator:
         if self.using_ros:
             rospy.init_node('grid_generator')
             self.grid_pub = rospy.Publisher('/planning/map', GridMap, queue_size=1)
-            self.image_pub = rospy.Publisher('/planning/image', Image, queue_size=1)
             print('Grid generator node started')
         else:
             print('Running GridMapGenerator in unit test mode')
@@ -44,12 +42,10 @@ class GridMapGenerator:
         self.grid = Grid(map_image)
 
     def publish_map(self):
-        map_image = self.grid.draw_map()
         grid_msg = GridMap(grid=map_image, minLatitude=Float32(self.minLatitude), maxLatitude=Float32(self.maxLatitude),
                            minLongitude=Float32(self.minLongitude), maxLongitude=Float32(self.maxLongitude))
         if self.using_ros:
             self.grid_pub.publish(grid_msg)
-            self.image_pub.publish(map_image)
         return grid_msg
 
 
@@ -57,7 +53,7 @@ class Grid():
     def __init__(self, image):
         """ Creates a grid of cell objects based on an image. Each image pixel becomes
             a cell that is water if it's light colored, land if it's dark colored."""
-        self.width = 180
+        self.width = 90
         self.height = self.width * image.size[1] // image.size[0]
         image.thumbnail((self.width, self.height))
         # Creates empty grid
@@ -68,6 +64,8 @@ class Grid():
                 pixel = image.getpixel((x, y))
                 if pixel[2] > 210 and pixel[2] > pixel[1] + 20:
                     self.grid[y][x].is_water = True
+                else:
+                    self.grid[y][x].is_water = False
 
     def get_cell(self, coords):
         """ Returns the cell object at the given coordinate. """
@@ -99,28 +97,6 @@ class Grid():
         buffered_grid = [[Cell(coords=(x, y), is_water=self.safe_distance((x, y))) \
                           for x in range(self.width)] for y in range(self.height)]
         self.grid = buffered_grid
-
-    def draw_map(self):
-        """ Creates an image with the map image as a background and the cells in
-            the final path highlighted in green. """
-        header = Header()
-        height = self.height
-        width = self.width
-        encoding = 'rgb8'
-        step = 3 * width
-        data = []
-
-        for y in range(self.height):
-            for x in range(self.width):
-                if self.grid[y][x].is_water:
-                    data.extend([254] * 3)
-                else:
-                    data.extend([0] * 3)
-
-        img = Image(header=header, height=height, width=width, encoding=encoding, \
-                    is_bigendian=False, step=step, data=data)
-        return img
-
 
 class Cell():
     def __init__(self, coords, lat=0, lon=0, is_water=False):

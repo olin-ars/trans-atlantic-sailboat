@@ -7,7 +7,7 @@ class AStarPlanner:
     def plan(self, start_coord, destination_coord, wind_angle):
         """ Updates cells' g, h, f, and parent coordinates until the destination
             square is found. """
-        self.wind_direction = ((wind_angle + 22.5) % 360) // 45
+        self.wind_direction = int(((wind_angle + 22.5) % 360) / 45)
         self.open_list = [start_coord]
         self.closed_list = []
         cell_s = self.grid.get_cell(start_coord)

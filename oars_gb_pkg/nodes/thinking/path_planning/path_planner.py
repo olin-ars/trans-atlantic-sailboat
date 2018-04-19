@@ -2,6 +2,7 @@
 import rospy
 from array import array
 from std_msgs.msg import Float32MultiArray
+from sensor_msgs.msg import Image
 from geometry_msgs.msg import Pose2D
 from oars_gb.msg import GridMap, WaypointList
 from oars_gb_pkg.helpers.path_planning import *
@@ -29,13 +30,13 @@ class PathPlanner:
             rospy.Subscriber('/boat/position', Pose2D, self.received_boat_pos_msg, queue_size=1)
             rospy.Subscriber('/planning/goal_pos', Pose2D, self.received_desired_pos_msg, queue_size=1)
             rospy.Subscriber('/weather/wind/true', Pose2D, self.received_wind_msg, queue_size=1)
-            # NEED TO RECEIVE WIND MSG
+            self.image_pub = rospy.Publisher('/planning/image', Image, queue_size=1)
             self.waypoint_pub = rospy.Publisher('/planning/waypoints', WaypointList, queue_size=1)
 
             print('Waypoint planner node initialized')
 
             # Now just twiddle our thumbs until we need to do something
-            r = rospy.Rate(2)
+            r = rospy.Rate(10)
             while not rospy.is_shutdown():
                 self.plan_path()
                 r.sleep()
@@ -81,6 +82,27 @@ class PathPlanner:
         self.grid_lower_left_coord = (msg.minLongitude, msg.minLatitude)
         self.grid_upper_right_coord = (msg.maxLongitude, msg.maxLatitude)
 
+    def draw_map(self):
+        """ Creates an image with the map image as a background and the cells in
+            the final path highlighted in green. """
+        header = Header()
+        height = self.height
+        width = self.width
+        encoding = 'rgb8'
+        step = 3 * width
+        data = []
+
+        for y in range(self.height):
+            for x in range(self.width):
+                if self.grid[y][x].is_water:
+                    data.extend([254] * 3)
+                else:
+                    data.extend([0] * 3)
+
+        img = Image(header=header, height=height, width=width, encoding=encoding, \
+                    is_bigendian=False, step=step, data=data)
+        return img
+
     def plan_path(self):
         """
         Calculates the best course to follow given the boat's current position, desired end location, and environment
@@ -88,26 +110,24 @@ class PathPlanner:
         :return: a list of waypoints (tuples) to navigate, or None if we don't possess the needed inputs
         """
         # Make sure we have the info we need to plan a path
-        if self.current_pos is None or self.goal_pos is None or self.grid_map is None:
-            # or self.wind_angle is None (once that exists)
-            print('not enough information')
+        if self.current_pos is None or self.goal_pos is None \
+            or self.wind_angle is None or self.grid_map is None:
             return
 
-        # TODO Incorporate actual wind direction in planning
-
         # Plan a path based on the map and our current location and environment conditions
+        print("Starting path planner...")
         planner = AStarPlanner(self.grid_map)
         # Find an open starting and ending coordinate
         start = gps_coords_to_cell(self.current_pos, self.grid_lower_left_coord, self.grid_upper_right_coord, self.grid_map.width, self.grid_map.height)
         end = gps_coords_to_cell(self.goal_pos, self.grid_lower_left_coord, self.grid_upper_right_coord, self.grid_map.width, self.grid_map.height)
-        print(start, end)
         while not self.grid_map.get_cell(start).is_water:
             start = (start[0] + 1, start[1] + 1)
         while not self.grid_map.get_cell(end).is_water:
             end = (end[0] - 1, end[1] - 1)
-        print(start, end)
         # Run the path planner and save the path in an image
+        print("Planning path...")
         path = planner.plan(start, end, self.wind_angle)
+        print("Getting waypoints...")
         waypoints = make_waypoints(path)
         gps_waypoints_lat = []
         gps_waypoints_lon = []
@@ -121,8 +141,10 @@ class PathPlanner:
             longitudes=Float32MultiArray(data=gps_waypoints_lon)
         )
         if self.using_ros:
+            # map_image = self.draw_map(waypoints) ##
+            # self.image_pub.publish(map_image)
             self.waypoint_pub.publish(gps_waypoints)
-            print('published')
+            print('Waypoints published')
         return gps_waypoints
 
 
