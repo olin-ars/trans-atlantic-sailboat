@@ -4,6 +4,7 @@
 required_arch="armv6l"
 ros_version="kinetic"
 repo_root=$(pwd)
+catkin_root=${repo_root}/../
 
 # Check that we're on an ARM processor
 arch=$(uname -m)
@@ -48,6 +49,28 @@ echo
 echo "Installing ROS..."
 wstool init src ${ros_version}-ros_comm-wet.rosinstall
 
+# Build dependencies not available precompiled
+echo "Building dependencies..."
+mkdir ${catkin_root}/external_src
+cd ${catkin_root}/external_src
+wget http://sourceforge.net/projects/assimp/files/assimp-3.1/assimp-3.1.1_no_test_models.zip/download -O assimp-3.1.1_no_test_models.zip
+unzip assimp-3.1.1_no_test_models.zip
+cd assimp-3.1.1
+cmake .
+make
+sudo make install
+
+echo
+echo "Dependency compiliation complete"
+echo
+
+echo "Building ROS..."
+cd ${catkin_root}
+rosdep install -y --from-paths src --ignore-src --rosdistro kinetic -r --os=debian:$(lsb_release -sc)
+sudo ./src/catkin/bin/catkin_make_isolated --install -DCMAKE_BUILD_TYPE=Release --install-space /opt/ros/kinetic
+echo
+echo "ROS compilation complete"
+echo
 
 # Load the ROS environment variables upon opening a new shell
 echo ""  >> ~/.bashrc
