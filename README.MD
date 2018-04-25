@@ -17,10 +17,10 @@ on a computer running Ubuntu 16.04:
 
   1) Open a terminal and run `mkdir -p ~/catkin_ws/src && cd ~/catkin_ws/src`
   2) Clone the repo by running `git clone https://github.com/olin-robotic-sailing/trans-atlantic-sailboat.git`
-  3) Run `cd trans-atlantic-sailboat && ./setup` to run the setup script
+  3) Run `cd trans-atlantic-sailboat && ./setup/dev-env.sh` to run the setup.sh script
   4) Run the command it says to run afterwards
 
-The setup script will walk you through installing ROS and setting it up with Python
+The setup.sh script will walk you through installing ROS and setting it up with Python
 in a way that will not conflict with other Python configurations (e.g. Anaconda).
 It will also give you the option to install the PyCharm integrated development
 environment, which is great for debugging, and configure it for use with ROS.
