@@ -16,7 +16,6 @@ fi
 ##### INSTALL ROS #####
 
 # Add the apt repo and ROS public key
-echo "Adding ROS package repo to apt..."
 sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list'
 sudo apt -y install dirmngr
 sudo apt-key adv --keyserver hkp://ha.pool.sks-keyservers.net:80 --recv-key 421C365BD9FF1F717815A3895523BAEEB01FA116
@@ -27,6 +26,13 @@ sudo apt-get -y upgrade
 
 echo Package updates completed
 
+# Install ROS
+sudo apt-get -y install ros-${ros_version}-ros-base
+
+# Initialize rosdep
+sudo rosdep init
+rosdep update
+
 ##### INSTALL PYTHON PACKAGES #####
 
 # Make sure pip is installed
@@ -35,19 +41,7 @@ sudo apt-get -y install python-pip python-dev build-essential
 sudo -H pip install --upgrade python pip
 
 # Install ROS Python packages (for all Python 2 interpreters)
-sudo -H pip install testresources
-sudo apt-get -y install rosdep python-rosinstall python-rosinstall-generator python-wstool build-essential
-
-# Initialize rosdep
-sudo rosdep init
-rosdep update
-
-echo "Preparing ROS installation..."
-rosinstall_generator ros_comm --rosdistro ${ros_version} --deps --wet-only --exclude roslisp --tar > ${ros_version}-ros_comm-wet.rosinstall
-echo
-echo "Installing ROS..."
-wstool init src ${ros_version}-ros_comm-wet.rosinstall
-
+sudo apt-get -y install python-rosinstall python-rosinstall-generator python-wstool build-essential
 
 # Load the ROS environment variables upon opening a new shell
 echo ""  >> ~/.bashrc
