@@ -32,42 +32,57 @@ echo Package updates completed
 
 # Make sure pip is installed
 echo Installing Python pip...
-sudo apt-get -y install python-pip python-dev build-essential
+sudo apt-get -y install python-pip python-dev
 sudo -H pip install --upgrade python pip
 
 # Install ROS Python packages (for all Python 2 interpreters)
 sudo -H pip install testresources
-sudo apt-get -y install rosdep python-rosinstall python-rosinstall-generator python-wstool build-essential
+sudo apt-get -y install python-rosdep python-rosinstall python-rosinstall-generator python-wstool build-essential cmake
 
 # Initialize rosdep
 sudo rosdep init
 rosdep update
 
 echo "Preparing ROS installation..."
+cd ${catkin_root}
 rosinstall_generator ros_comm --rosdistro ${ros_version} --deps --wet-only --exclude roslisp --tar > ${ros_version}-ros_comm-wet.rosinstall
 echo
 echo "Installing ROS..."
 wstool init src ${ros_version}-ros_comm-wet.rosinstall
+rm ${ros_version}-ros_comm-wet.rosinstall
 
 # Build dependencies not available precompiled
 echo "Building dependencies..."
-mkdir ${catkin_root}/external_src
-cd ${catkin_root}/external_src
+mkdir external_src
+cd external_src
 wget http://sourceforge.net/projects/assimp/files/assimp-3.1/assimp-3.1.1_no_test_models.zip/download -O assimp-3.1.1_no_test_models.zip
 unzip assimp-3.1.1_no_test_models.zip
+rm assimp-3.1.1_no_test_models.zip
 cd assimp-3.1.1
 cmake .
 make
 sudo make install
 
 echo
-echo "Dependency compiliation complete"
+echo "Dependency compilation complete"
+echo
+
+echo "Downloading extra needed ROS message types not included by default..."
+cd ${catkin_root}
+git clone https://github.com/ros/common_msgs.git
+cd common_msgs
+# Remove unnecessary modules to avoid building them (which can take a long time)
+rm -rf actionlib_msgs diagnostic_msgs nav_msgs shape_msgs stereo_msgs trajectory_msgs visualization_msgs
+
+echo
+echo "Download complete"
 echo
 
 echo "Building ROS..."
 cd ${catkin_root}
-rosdep install -y --from-paths src --ignore-src --rosdistro kinetic -r --os=debian:$(lsb_release -sc)
-sudo ./src/catkin/bin/catkin_make_isolated --install -DCMAKE_BUILD_TYPE=Release --install-space /opt/ros/kinetic
+rosdep install -y --from-paths src --ignore-src --rosdistro ${ros_version} -r --os=debian:$(lsb_release -sc)
+# Took 6 hours on Raspberry Pi Zero (before skipping unnecessary dependencies)
+sudo ./src/catkin/bin/catkin_make_isolated --install -DCMAKE_BUILD_TYPE=Release --install-space /opt/ros/${ros_version}
 echo
 echo "ROS compilation complete"
 echo
@@ -78,7 +93,7 @@ echo "# ROS" >> ~/.bashrc
 echo "source /opt/ros/$ros_version/setup.bash" >> ~/.bashrc
 
 # Add the repo to the Python interpreter path so it can find the Python modules we make
-echo "export PYTHONPATH=\$PYTHONPATH:$(pwd)\n\n" >> ~/.bashrc
+echo "export PYTHONPATH=\$PYTHONPATH:$(repo_root)" >> ~/.bashrc
 
 # Load all environment variables, aliases, etc
 source $HOME/.bashrc
@@ -86,7 +101,8 @@ source $HOME/.bashrc
 # Install Python dependencies
 echo
 echo "Installing Python requirements..."
-pip install -r requirements.txt
+cd ${repo_root}
+sudo -H pip install -r requirements.txt
 
 echo
 echo "Python configuration complete"
@@ -100,7 +116,7 @@ cd ../../
 catkin_make
 
 # Load the catkin workspace stuff when loading the virtual environment
-echo "source $(pwd)/devel/setup.bash" >> ~/.bashrc
+echo "source $(catkin_root)/devel/setup.bash" >> ~/.bashrc
 echo ""  >> ~/.bashrc
 
 echo
@@ -110,15 +126,15 @@ echo
 #### BUILD DYNAMIXEL SDK ####
 
 cd ${repo_root}/../../
-
 echo "Cloning the Dynamixel SDK source..."
 git clone https://github.com/ROBOTIS-GIT/DynamixelSDK.git
 cd DynamixelSDK/c++/build/linux_sbc/
-
 echo "Building the Dynamixel drivers..."
 make
 echo "Build complete. Installing the Dynamixel drivers..."
 sudo make install
+cd ${repo_root}/../../
+rm -rf DynamixelSDK
 echo
 echo "Dynamixel driver installation complete"
 

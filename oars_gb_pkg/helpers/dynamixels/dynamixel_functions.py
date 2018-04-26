@@ -42,7 +42,7 @@ lib_path = '/usr/local/lib'
 # dxl_lib = cdll.LoadLibrary("../../c/build/win32/output/dxl_x86_c.dll")  # for windows 32bit
 # dxl_lib = cdll.LoadLibrary("../../c/build/win64/output/dxl_x64_c.dll")  # for windows 64bit
 # dxl_lib = cdll.LoadLibrary("../../c/build/mac/libdxl_mac_c.dylib")      # for Mac OS
-lib_filenames = ['libdxl_x86_c.so', 'libdxl_x64_c.so', 'libdxl_sbc_c++.so']
+lib_filenames = ['libdxl_x86_c.so', 'libdxl_x64_c.so', 'libdxl_sbc_c.so']
 dxl_lib = None
 for filename in lib_filenames:
     full_path = os.path.join(lib_path, filename)
