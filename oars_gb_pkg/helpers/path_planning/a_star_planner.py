@@ -103,7 +103,6 @@ class Grid:
         """
         self.width = image.width
         self.height = image.height
-
         # Creates empty grid
         self.grid = [[Cell(coords=(x, y)) for x in range(self.width)] for y in range(self.height)]
         for y in range(self.height):
@@ -111,6 +110,8 @@ class Grid:
                 index = (y * self.width + x) * 3  # 3 is because we have RGB data
                 if image.data[index] > 128:
                     self.grid[y][x].is_water = True
+                else:
+                    self.grid[y][x].is_water = False
 
     def get_cell(self, coords):
         """ Returns the cell object at the given coordinate. """

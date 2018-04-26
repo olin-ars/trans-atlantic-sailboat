@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import rospy
 from array import array
-from std_msgs.msg import Float32MultiArray
+from std_msgs.msg import Float32MultiArray, Header
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import Pose2D
 from oars_gb.msg import GridMap, WaypointList
@@ -47,7 +47,7 @@ class PathPlanner:
         :param msg: a ROS message where x and y correspond to the longitude and latitude, respectively, of the boat
         :type msg: Pose2D
         """
-        print('received_boat_pos_msg')
+        print('Received_boat_pos_msg')
         self.current_pos = (msg.x, msg.y)
 
     def received_desired_pos_msg(self, msg):
@@ -56,7 +56,7 @@ class PathPlanner:
         :param msg: a ROS message where x and y correspond to the longitude and latitude, respectively
         :type msg: Pose2D
         """
-        print('received_desired_pos_msg')
+        print('Received_desired_pos_msg')
         self.goal_pos = (msg.x, msg.y)
 
     def received_wind_msg(self, msg):
@@ -82,22 +82,24 @@ class PathPlanner:
         self.grid_lower_left_coord = (msg.minLongitude, msg.minLatitude)
         self.grid_upper_right_coord = (msg.maxLongitude, msg.maxLatitude)
 
-    def draw_map(self):
+    def draw_map(self, waypoints, path, width, height):
         """ Creates an image with the map image as a background and the cells in
             the final path highlighted in green. """
         header = Header()
-        height = self.height
-        width = self.width
         encoding = 'rgb8'
         step = 3 * width
         data = []
 
-        for y in range(self.height):
-            for x in range(self.width):
-                if self.grid[y][x].is_water:
-                    data.extend([254] * 3)
+        for y in range(height):
+            for x in range(width):
+                if (x, y) in waypoints:
+                    data.extend([254, 0, 0])
+                elif (x, y) in path:
+                    data.extend([254, 254, 254])
+                elif self.grid_map.get_cell((x, y)).is_water:
+                    data.extend([20, 80, 200])
                 else:
-                    data.extend([0] * 3)
+                    data.extend([20, 200, 80])
 
         img = Image(header=header, height=height, width=width, encoding=encoding, \
                     is_bigendian=False, step=step, data=data)
@@ -117,9 +119,11 @@ class PathPlanner:
         # Plan a path based on the map and our current location and environment conditions
         print("Starting path planner...")
         planner = AStarPlanner(self.grid_map)
+        width = self.grid_map.width
+        height = self.grid_map.height
         # Find an open starting and ending coordinate
-        start = gps_coords_to_cell(self.current_pos, self.grid_lower_left_coord, self.grid_upper_right_coord, self.grid_map.width, self.grid_map.height)
-        end = gps_coords_to_cell(self.goal_pos, self.grid_lower_left_coord, self.grid_upper_right_coord, self.grid_map.width, self.grid_map.height)
+        start = gps_coords_to_cell(self.current_pos, self.grid_lower_left_coord, self.grid_upper_right_coord, width, height)
+        end = gps_coords_to_cell(self.goal_pos, self.grid_lower_left_coord, self.grid_upper_right_coord, width, height)
         while not self.grid_map.get_cell(start).is_water:
             start = (start[0] + 1, start[1] + 1)
         while not self.grid_map.get_cell(end).is_water:
@@ -132,7 +136,7 @@ class PathPlanner:
         gps_waypoints_lat = []
         gps_waypoints_lon = []
         for point in waypoints:
-            gps_point = cell_to_gps_coords(point, self.grid_lower_left_coord, self.grid_upper_right_coord, self.grid_map.width, self.grid_map.height)
+            gps_point = cell_to_gps_coords(point, self.grid_lower_left_coord, self.grid_upper_right_coord, width, height)
             gps_waypoints_lat.append(gps_point[0])
             gps_waypoints_lon.append(gps_point[1])
 
@@ -141,8 +145,8 @@ class PathPlanner:
             longitudes=Float32MultiArray(data=gps_waypoints_lon)
         )
         if self.using_ros:
-            # map_image = self.draw_map(waypoints) ##
-            # self.image_pub.publish(map_image)
+            map_image = self.draw_map(waypoints, path, width, height)
+            self.image_pub.publish(map_image)
             self.waypoint_pub.publish(gps_waypoints)
             print('Waypoints published')
         return gps_waypoints
