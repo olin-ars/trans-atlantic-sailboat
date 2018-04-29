@@ -36,7 +36,7 @@ class PathPlanner:
             print('Waypoint planner node initialized')
 
             # Now just twiddle our thumbs until we need to do something
-            r = rospy.Rate(10)
+            r = rospy.Rate(1)
             while not rospy.is_shutdown():
                 self.plan_path()
                 r.sleep()
@@ -137,8 +137,8 @@ class PathPlanner:
         gps_waypoints_lon = []
         for point in waypoints:
             gps_point = cell_to_gps_coords(point, self.grid_lower_left_coord, self.grid_upper_right_coord, width, height)
-            gps_waypoints_lat.append(gps_point[0])
-            gps_waypoints_lon.append(gps_point[1])
+            gps_waypoints_lat.append(gps_point[1])
+            gps_waypoints_lon.append(gps_point[0])
 
         gps_waypoints = WaypointList(
             latitudes=Float32MultiArray(data=gps_waypoints_lat),
@@ -148,7 +148,7 @@ class PathPlanner:
             map_image = self.draw_map(waypoints, path, width, height)
             self.image_pub.publish(map_image)
             self.waypoint_pub.publish(gps_waypoints)
-            print('Waypoints published')
+            print(waypoints)
         return gps_waypoints
 
 

@@ -108,7 +108,6 @@ class Grid():
         encoding = 'rgb8'
         step = 3 * width
         data = []
-
         for y in range(self.height):
             for x in range(self.width):
                 if self.grid[y][x].is_water:
@@ -129,7 +128,7 @@ class Cell():
 if __name__ == "__main__":
     map_generator = GridMapGenerator()
     # Load an image to base the map on
-    map_generator.load_image('maps/waban_42.282368_42.293353_-71.314756_-71.302289.png')
+    map_generator.load_image('maps/waban_42.282818_-71.313751_42.293184_-71.302057.png')
 
     while not rospy.is_shutdown():
         map_generator.publish_map()
