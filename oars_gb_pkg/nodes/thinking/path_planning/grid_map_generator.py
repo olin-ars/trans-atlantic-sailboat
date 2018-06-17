@@ -36,8 +36,8 @@ class GridMapGenerator:
         (directory, filename) = path.split(file_path)
         name_parts = filename.split('_')
         self.minLatitude = float(name_parts[1])
-        self.maxLatitude = float(name_parts[2])
-        self.minLongitude = float(name_parts[3])
+        self.minLongitude = float(name_parts[2])
+        self.maxLatitude = float(name_parts[3])
         self.maxLongitude = float('.'.join(name_parts[4].split('.')[:-1]))  # Remove the file extension
 
         self.grid = Grid(map_image)
