@@ -1,8 +1,13 @@
 class AStarPlanner:
+
+    DIRECTIONS = [(0, 1), (-1, 1), (-1, 0), (-1, -1), (0, -1), (1, -1), (1, 0), (1, 1)]
+    COSTS = [10, 1, 2, 1, 3, 1, 2, 1]
+
     def __init__(self, grid):
         self.grid = grid
         self.open_list = []
         self.closed_list = []
+        self.wind_direction = 0
 
     def plan(self, start_coord, destination_coord, wind_angle):
         """ Updates cells' g, h, f, and parent coordinates until the destination
@@ -48,11 +53,9 @@ class AStarPlanner:
     def get_open_adj_coords(self, coords):
         """ returns list of valid coords that are adjacent to the argument,
             open, and not in the closed list. """
-        directions = [(0, 1), (-1, 1), (-1, 0), (-1, -1), (0, -1), (1, -1), (1, 0), (1, 1)]
-        all_adj = [self.grid.add_coords(coords, d) for d in directions]
-        all_costs = [10, 1, 2, 1, 3, 1, 2, 1]
+        all_adj = [self.grid.add_coords(coords, d) for d in self.DIRECTIONS]
         w = self.wind_direction
-        costs_shifted = all_costs[w:] + all_costs[:w]
+        costs_shifted = self.COSTS[w:] + self.COSTS[:w]
         in_bounds = [self.is_valid(c) for c in all_adj]
         costs = []
         open_adj = []

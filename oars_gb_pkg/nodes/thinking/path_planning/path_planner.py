@@ -16,7 +16,7 @@ class PathPlanner:
         self.goal_pos = None
         self.wind_angle = None
         self.wind_speed = None
-        self.grid_map = None
+        self.grid = None
         self.grid_lower_left_coord = None
         self.grid_upper_right_coord = None
         self.using_ros = using_ros
@@ -77,8 +77,8 @@ class PathPlanner:
         """
         # Convert the ROS Image message to a Grid
         print('Received map message')
-        msg.grid.data = list(array("B", msg.grid.data))
-        self.grid_map = Grid(msg.grid)
+        msg.grid.data = list(array("B", msg.grid.data))  # Decode the binary data back into a list
+        self.grid = Grid(msg.grid)
         self.grid_lower_left_coord = (msg.minLongitude, msg.minLatitude)
         self.grid_upper_right_coord = (msg.maxLongitude, msg.maxLatitude)
 
@@ -96,12 +96,12 @@ class PathPlanner:
                     data.extend([254, 0, 0])
                 elif (x, y) in path:
                     data.extend([254, 254, 254])
-                elif self.grid_map.get_cell((x, y)).is_water:
+                elif self.grid.get_cell((x, y)).is_water:
                     data.extend([20, 80, 200])
                 else:
                     data.extend([20, 200, 80])
 
-        img = Image(header=header, height=height, width=width, encoding=encoding, \
+        img = Image(header=header, height=height, width=width, encoding=encoding,
                     is_bigendian=False, step=step, data=data)
         return img
 
@@ -113,20 +113,21 @@ class PathPlanner:
         """
         # Make sure we have the info we need to plan a path
         if self.current_pos is None or self.goal_pos is None \
-            or self.wind_angle is None or self.grid_map is None:
+            or self.wind_angle is None or self.grid is None:
             return
 
         # Plan a path based on the map and our current location and environment conditions
         print("Starting path planner...")
-        planner = AStarPlanner(self.grid_map)
-        width = self.grid_map.width
-        height = self.grid_map.height
+        planner = AStarPlanner(self.grid)
+        width = self.grid.width
+        height = self.grid.height
         # Find an open starting and ending coordinate
         start = gps_coords_to_cell(self.current_pos, self.grid_lower_left_coord, self.grid_upper_right_coord, width, height)
         end = gps_coords_to_cell(self.goal_pos, self.grid_lower_left_coord, self.grid_upper_right_coord, width, height)
-        while not self.grid_map.get_cell(start).is_water:
+        # Are these lines necessary? Shouldn't we require that the start and end be on water?
+        while not self.grid.get_cell(start).is_water:
             start = (start[0] + 1, start[1] + 1)
-        while not self.grid_map.get_cell(end).is_water:
+        while not self.grid.get_cell(end).is_water:
             end = (end[0] - 1, end[1] - 1)
         # Run the path planner and save the path in an image
         print("Planning path...")

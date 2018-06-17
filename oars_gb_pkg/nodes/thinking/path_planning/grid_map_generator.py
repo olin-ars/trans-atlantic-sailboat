@@ -24,6 +24,7 @@ class GridMapGenerator:
         if self.using_ros:
             rospy.init_node('grid_generator')
             self.grid_pub = rospy.Publisher('/planning/map', GridMap, queue_size=1)
+            # self.img_pub = rospy.Publisher('/planning/image', Image, queue_size=1)
             print('Grid generator node started')
         else:
             print('Running GridMapGenerator in unit test mode')
@@ -48,6 +49,7 @@ class GridMapGenerator:
                            minLongitude=Float32(self.minLongitude), maxLongitude=Float32(self.maxLongitude))
         if self.using_ros:
             self.grid_pub.publish(grid_msg)
+            # self.img_pub.publish(map_image)
         return grid_msg
 
 
@@ -119,6 +121,7 @@ class Grid():
                     is_bigendian=False, step=step, data=data)
         return img
 
+
 class Cell():
     def __init__(self, coords, lat=0, lon=0, is_water=False):
         self.is_water = is_water
@@ -132,5 +135,5 @@ if __name__ == "__main__":
 
     while not rospy.is_shutdown():
         map_generator.publish_map()
-        print("published")
+        print("Published GridMap")
         time.sleep(10)
