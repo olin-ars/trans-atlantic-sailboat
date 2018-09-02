@@ -3,6 +3,9 @@
 required_ubuntu_version="16.04"
 ros_version="kinetic"
 repo_root=$(pwd)
+cd ../../../
+oars_root=$(pwd)
+cd repo_root
 opencv_version="3.4.3"
 
 # Check that we're on Ubuntu 16.04
@@ -13,17 +16,23 @@ then
   exit
 fi
 
+##### Update all system packages first #####
+
+echo Updating system packages...
+sudo apt update
+sudo apt upgrade
+
 ##### INSTALL ROS #####
 
 # Add the apt repo and ROS public key
 sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list'
 sudo apt -y install dirmngr
 sudo apt-key adv --keyserver hkp://ha.pool.sks-keyservers.net:80 --recv-key 421C365BD9FF1F717815A3895523BAEEB01FA116
-sudo apt-get update
+sudo apt update
 
 # Install ROS
 echo Installing ROS Kinetic...
-sudo apt-get -y install ros-kinetic-desktop-full
+sudo apt -y install ros-kinetic-desktop-full
 
 # Initialize rosdep
 echo Initializing rosdep...
@@ -34,24 +43,24 @@ rosdep update
 echo Setting up Python to work with ROS...
 
 # Make sure pip is installed
-sudo apt-get -y install python-pip python-dev build-essential
+sudo apt -y install python-pip python-dev build-essential
 sudo -H pip install --upgrade python pip virtualenv
 
 # Install ROS Python packages (for all Python 2 interpreters)
-sudo apt-get -y install python-rosinstall python-rosinstall-generator python-wstool build-essential
+sudo apt -y install python-rosinstall python-rosinstall-generator python-wstool build-essential
 
 # Make a virtual Python environment
 mkdir ../../.virtualenvs/
-virtualenv -p python2.7 --system-site-packages ../../.virtualenvs/oars
+virtualenv -p python2.7 --system-site-packages $oars_root/.virtualenvs/oars
 
 # Load the ROS environment variables when using the virtual environment
-echo "source /opt/ros/$ros_version/setup.bash" >> ../../.virtualenvs/oars/bin/activate
+echo "source /opt/ros/$ros_version/setup.bash" >> $oars_root/.virtualenvs/oars/bin/activate
 
 # Add the repo to the Python interpreter path so it can find the Python modules we make
-echo "export PYTHONPATH=\$PYTHONPATH:$(pwd)" >> ../../.virtualenvs/oars/bin/activate
+echo "export PYTHONPATH=\$PYTHONPATH:$(pwd)" >> $oars_root/.virtualenvs/oars/bin/activate
 
 # Add a shortcut to activate the virtual environment
-venv_activate=$repo_root/../../.virtualenvs/oars/bin/activate
+venv_activate=$oars_root/.virtualenvs/oars/bin/activate
 echo "alias useoars=\"source $venv_activate\"" >> $HOME/.bashrc
 
 # Load all environment variables, aliases, etc
@@ -72,7 +81,7 @@ echo Python configuration complete
 
 echo Building the catkin workspace...
 
-cd ../../
+cd $repo_root/../..  # cd to catkin_ws, or whatever it's called
 catkin_make
 
 # Load the catkin workspace stuff when loading the virtual environment
@@ -109,7 +118,7 @@ while [ $answer_valid != true ]; do
   echo   c\) Do nothing related to PyCharm
   echo -n "Your answer: "
   read answer
-  if [ $answer == "A" ] || [ $answer == "a" ] || [ $answer == "" ]
+  if [ $answer == "A" ] || [ $answer == "a" ] || [ "$answer" == "" ]
   then
     answer_valid=true
     install_pycharm=true
@@ -132,7 +141,7 @@ then
   echo
   echo -n "Are you a student? [Y/n] "
   read answer
-  if [ $answer == "Y" ] || [ $answer == "y" ] || [ $answer == "" ]
+  if [ $answer == "Y" ] || [ $answer == "y" ] || [ "$answer" == "" ]
   then
     echo Please create an account with JetBrains to get a free copy of PyCharm Professional.
     use_pro=true
@@ -144,8 +153,8 @@ then
     echo Installing PyCharm Community Edition...
   fi
   sudo add-apt-repository -y ppa:ubuntu-desktop/ubuntu-make
-  sudo apt-get update
-  sudo apt-get -y install ubuntu-make
+  sudo apt update
+  sudo apt -y install ubuntu-make
   umake ide $pycharm_version
   echo PyCharm installation complete
 fi
@@ -159,31 +168,32 @@ then
 fi
 
 # Install OpenCV, if desired
-install_opencv = false
+install_opencv=false
+answer_valid=false
 
 while [ $answer_valid != true ]; do
   echo
-  echo -n "Would you like to install OpenCV? [Y/n] "
+  echo -n "Would you like to install OpenCV? [Y/n]"
   read answer
-  if [ $answer == "Y" ] || [ $answer == "y" ] || [ $answer == "" ]
+  if [ $answer == "Y" ] || [ $answer == "y" ] || [ "$answer" == "" ]
   then
-    answer_valid = true
-    install_opencv = true
+    answer_valid=true
+    install_opencv=true
   elif [ $answer == "N" ] || [ $answer == "n" ]
   then
     echo Skipping installation of OpenCV
   fi
-fi
+done
 
 if [ $install_opencv ]
 then
   echo Removing any previous installations of x264...
-  sudo apt-get remove -y x264 libx264-dev
+  sudo apt remove -y x264 libx264-dev
   echo Installing OpenCV dependencies...
-  sudo apt-get install -y checkinstall cmake pkg-config yasm gfortran \
+  sudo apt install -y checkinstall cmake pkg-config yasm gfortran \
       libjpeg8-dev libjasper-dev libpng12-dev
-  sudo apt-get install libtiff5-dev # For Ubuntu 16.04
-  sudo apt-get install libavcodec-dev libavformat-dev libswscale-dev \
+  sudo apt install -y libtiff5-dev # For Ubuntu 16.04
+  sudo apt install -y libavcodec-dev libavformat-dev libswscale-dev \
       libdc1394-22-dev libxine2-dev libv4l-dev libgstreamer0.10-dev \
       libgstreamer-plugins-base0.10-dev qt5-default libgtk2.0-dev libtbb-dev \
       libatlas-base-dev libfaac-dev libmp3lame-dev libtheora-dev libvorbis-dev \
@@ -193,13 +203,13 @@ then
   pip install numpy scipy matplotlib scikit-image scikit-learn ipython
 
   echo Downloading OpenCV source...
-  cd $repo_root/../
+  cd $oars_root
   git clone https://github.com/opencv/opencv.git
   cd opencv
   git checkout $opencv_version
 
   echo Downloading OpenCV contrib source...
-  cd ..
+  cd $oars_root
   git clone https://github.com/opencv/opencv_contrib.git
   cd opencv_contrib
   git checkout $opencv_version
@@ -226,13 +236,14 @@ then
 fi
 
 # Install TensorFlow and Keras, if desired
+answer_valid=false
 while [ $answer_valid != true ]; do
   echo
   echo -n "Would you like to install TensorFlow and Keras? [Y/n] "
   read answer
-  if [ $answer == "Y" ] || [ $answer == "y" ] || [ $answer == "" ]
+  if [ $answer == "Y" ] || [ $answer == "y" ] || [ "$answer" == "" ]
   then
-    answer_valid = true
+    answer_valid=true
     # Install TensorFlow and Keras
     echo Installing TensorFlow and Keras...
     pip install --upgrade matplotlib  # Make sure matplotlib is up to date
@@ -243,7 +254,7 @@ while [ $answer_valid != true ]; do
   then
     echo Skipping installation of TensorFlow and Keras
   fi
-fi
+done
 
 
 echo \n\n
