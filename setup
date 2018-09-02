@@ -72,6 +72,7 @@ source $venv_activate
 pip install --upgrade pip
 
 # Install Python dependencies
+cd $repo_root
 echo Installing Python requirements...
 pip install -r requirements.txt
 
@@ -85,7 +86,7 @@ cd $repo_root/../..  # cd to catkin_ws, or whatever it's called
 catkin_make
 
 # Load the catkin workspace stuff when loading the virtual environment
-echo "source $(pwd)/devel/setup.bash" >> .virtualenvs/oars/bin/activate
+echo "source $(pwd)/devel/setup.bash" >> $oars_root/.virtualenvs/oars/bin/activate
 
 # Load all environment variables, aliases, etc
 source $venv_activate
@@ -118,16 +119,16 @@ while [ $answer_valid != true ]; do
   echo   c\) Do nothing related to PyCharm
   echo -n "Your answer: "
   read answer
-  if [ $answer == "A" ] || [ $answer == "a" ] || [ "$answer" == "" ]
+  if [ "$answer" == "A" ] || [ "$answer" == "a" ] || [ "$answer" == "" ]
   then
     answer_valid=true
     install_pycharm=true
     configure_pycharm_launcher=true
-  elif [ $answer == "B" ] || [ $answer == "b" ]
+  elif [ "$answer" == "B" ] || [ "$answer" == "b" ]
   then
     answer_valid=true
     configure_pycharm_launcher=true
-  elif [ $answer == "C" ] || [ $answer == "c" ]
+  elif [ "$answer" == "C" ] || [ "$answer" == "c" ]
   then
     answer_valid=true
   else
@@ -141,7 +142,7 @@ then
   echo
   echo -n "Are you a student? [Y/n] "
   read answer
-  if [ $answer == "Y" ] || [ $answer == "y" ] || [ "$answer" == "" ]
+  if [ "$answer" == "Y" ] || [ "$answer" == "y" ] || [ "$answer" == "" ]
   then
     echo Please create an account with JetBrains to get a free copy of PyCharm Professional.
     use_pro=true
@@ -173,13 +174,13 @@ answer_valid=false
 
 while [ $answer_valid != true ]; do
   echo
-  echo -n "Would you like to install OpenCV? [Y/n]"
+  echo -n "Would you like to install OpenCV? [Y/n] "
   read answer
-  if [ $answer == "Y" ] || [ $answer == "y" ] || [ "$answer" == "" ]
+  if [ "$answer" == "Y" ] || [ "$answer" == "y" ] || [ "$answer" == "" ]
   then
     answer_valid=true
     install_opencv=true
-  elif [ $answer == "N" ] || [ $answer == "n" ]
+  elif [ "$answer" == "N" ] || [ "$answer" == "n" ]
   then
     echo Skipping installation of OpenCV
   fi
@@ -241,7 +242,7 @@ while [ $answer_valid != true ]; do
   echo
   echo -n "Would you like to install TensorFlow and Keras? [Y/n] "
   read answer
-  if [ $answer == "Y" ] || [ $answer == "y" ] || [ "$answer" == "" ]
+  if [ "$answer" == "Y" ] || [ "$answer" == "y" ] || [ "$answer" == "" ]
   then
     answer_valid=true
     # Install TensorFlow and Keras
@@ -250,7 +251,7 @@ while [ $answer_valid != true ]; do
     pip install tensorflow keras
 
     echo TensorFlow and Keras installed successfully in virtual environment.
-  elif [ $answer == "N" ] || [ $answer == "n" ]
+  elif [ "$answer" == "N" ] || [ "$answer" == "n" ]
   then
     echo Skipping installation of TensorFlow and Keras
   fi
