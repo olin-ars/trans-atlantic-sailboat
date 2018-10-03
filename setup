@@ -37,14 +37,14 @@ sudo -H pip install --upgrade python pip virtualenv
 sudo apt-get -y install python-rosinstall python-rosinstall-generator python-wstool build-essential
 
 # Make a virtual Python environment
-mkdir ../../.virtualenvs/
+mkdir $repo_root/../.virtualenvs/
 virtualenv -p python2.7 --system-site-packages ../../.virtualenvs/oars
 
 # Load the ROS environment variables when using the virtual environment
 echo "source /opt/ros/$ros_version/setup.bash" >> ../../.virtualenvs/oars/bin/activate
 
 # Add the repo to the Python interpreter path so it can find the Python modules we make
-echo "export PYTHONPATH=\$PYTHONPATH:$(pwd)" >> ../../.virtualenvs/oars/bin/activate
+echo "export PYTHONPATH=\$PYTHONPATH:$repo_root" >> "$repo_root/../.virtualenvs/oars/bin/activate"
 
 # Add a shortcut to activate the virtual environment
 venv_activate=$repo_root/../../.virtualenvs/oars/bin/activate
