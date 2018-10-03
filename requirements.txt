@@ -2,3 +2,5 @@ Pillow
 pyserial
 evdev
 socketIO-client-nexus
+flake8
+
