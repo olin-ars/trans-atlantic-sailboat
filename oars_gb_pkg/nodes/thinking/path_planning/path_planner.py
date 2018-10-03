@@ -3,8 +3,8 @@ import rospy
 from array import array
 from geometry_msgs.msg import Pose2D
 from oars_gb.msg import GridMap, WaypointList
-from oars_gb_pkg.helpers.path_planning import *
-from oars_gb_pkg.helpers.path_planning.waypoint_generator import *
+from oars_gb_pkg.helpers.path_planning import AStarPlanner, Grid
+from oars_gb_pkg.helpers.path_planning.waypoint_generator import gps_coords_to_cell, cell_to_gps_coords, make_waypoints
 
 
 class PathPlanner:
@@ -95,8 +95,10 @@ class PathPlanner:
         # Plan a path based on the map and our current location and environment conditions
         planner = AStarPlanner(self.grid_map)
         # Find an open starting and ending coordinate
-        start = gps_coords_to_cell(self.current_pos, self.grid_lower_left_coord, self.grid_upper_right_coord, self.grid_map.width, self.grid_map.height)
-        end = gps_coords_to_cell(self.goal_pos, self.grid_lower_left_coord, self.grid_upper_right_coord, self.grid_map.width, self.grid_map.height)
+        start = gps_coords_to_cell(self.current_pos, self.grid_lower_left_coord, self.grid_upper_right_coord,
+                                   self.grid_map.width, self.grid_map.height)
+        end = gps_coords_to_cell(self.goal_pos, self.grid_lower_left_coord, self.grid_upper_right_coord,
+                                 self.grid_map.width, self.grid_map.height)
         print(start, end)
         while not self.grid_map.get_cell(start).is_water:
             start = (start[0] + 1, start[1] + 1)
@@ -108,12 +110,14 @@ class PathPlanner:
         waypoints = make_waypoints(path)
         gps_waypoints_lat = []
         gps_waypoints_long = []
+        gps_waypoints = None
         for point in waypoints:
-            gps_point = cell_to_gps_coords(point, self.grid_lower_left_coord, self.grid_upper_right_coord, self.grid_map.width, self.grid_map.height)
+            gps_point = cell_to_gps_coords(point, self.grid_lower_left_coord, self.grid_upper_right_coord,
+                                           self.grid_map.width, self.grid_map.height)
             gps_waypoints_lat.append(gps_point[0])
             gps_waypoints_lat.append(gps_point[1])
         if self.using_ros:
-            gps_waypoints = WaypointList(latitudes = gps_waypoints_lat, longitudes = gps_waypoints_long)
+            gps_waypoints = WaypointList(latitudes=gps_waypoints_lat, longitudes=gps_waypoints_long)
             self.waypoint_pub.publish(gps_waypoints)
             print('published')
         return gps_waypoints

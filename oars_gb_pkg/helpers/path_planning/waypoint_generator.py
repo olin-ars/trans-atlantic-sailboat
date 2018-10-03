@@ -100,6 +100,7 @@ def cell_to_gps_coords(coord, p1, p2, cols, rows):
 
     return x_gps_coord, y_gps_coord
 
+
 def gps_coords_to_cell(coord, p1, p2, cols, rows):
     """
     Converts cell coordinates to GPS coordinates

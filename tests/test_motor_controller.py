@@ -1,5 +1,5 @@
 import unittest
-from oars_gb_pkg.nodes.acting.motor_controller import *
+from oars_gb_pkg.nodes.acting.motor_controller import MotorController
 
 
 class TestMotorController(unittest.TestCase):

@@ -7,6 +7,7 @@
 import rospy
 from geometry_msgs.msg import Vector3
 import logging
+import sys
 from Adafruit_BNO055 import BNO055
 
 # Raspberry Pi configuration with serial UART and RST connected to GPIO 18:
@@ -30,19 +31,21 @@ if status == 0x01:
     print('System error: {0}'.format(error))
     print('See datasheet section 4.3.59 for the meaning.')
 
+
 def publish_orientation():
-	pub = rospy.Publisher('/orientation',Vector3, queue_size=0)
-	rospy.init_node('orientation', anonymous = True)
-	rate = rospy.Rate(10) # 10hz
-	while not rospy.is_shutdown():
-  		# Read the Euler angles for heading, roll, pitch (all in degrees).
-		heading, roll, pitch = bno.read_euler()
-		rospy.loginfo(Vector3(heading,roll,pitch))
-		pub.publish(Vector3(heading,roll,pitch))
-		rate.sleep()
+    pub = rospy.Publisher('/orientation', Vector3, queue_size=0)
+    rospy.init_node('orientation', anonymous=True)
+    rate = rospy.Rate(10)  # 10hz
+    while not rospy.is_shutdown():
+        # Read the Euler angles for heading, roll, pitch (all in degrees).
+        heading, roll, pitch = bno.read_euler()
+        rospy.loginfo(Vector3(heading, roll, pitch))
+        pub.publish(Vector3(heading, roll, pitch))
+        rate.sleep()
+
 
 if __name__ == '__main__':
-	try:
-		publish_orientation()
-	except rospy.ROSInterruptException:
-		pass
+    try:
+        publish_orientation()
+    except rospy.ROSInterruptException:
+        pass

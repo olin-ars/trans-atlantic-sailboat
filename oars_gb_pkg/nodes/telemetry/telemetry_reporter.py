@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 from socketIO_client_nexus import SocketIO, SocketIONamespace
 from datetime import datetime
 import rospy
@@ -187,14 +186,14 @@ class TelemetryReporter:
         """
         # Turn the data into a ROS message
         msg = self._build_ros_msg(data, msg_type)
-        
+
         if msg is not None:
             # Register a publisher if one is not already registered for this topic
             if topic_name not in self.publishers:
                 self.configure_publisher(topic_name, msg_type)
                 # Note: Messages sent shortly after configuring publisher will likely be lost.
                 # See https://github.com/ros/ros_comm/issues/176 for more info.
-    
+
             self.publishers[topic_name].publish(msg)
 
     def _convert_unicode(self, data):

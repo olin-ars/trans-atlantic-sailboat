@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 import rospy
 from std_msgs.msg import Float32
 from geometry_msgs.msg import Pose2D
@@ -35,7 +34,7 @@ class SailController:
             self.jib_pub.publish(self.jib_pos)
 
             r.sleep()
-            
+
     def update_wind(self, msg):
         angle = msg.data.theta
         print('Wind angle:', angle)

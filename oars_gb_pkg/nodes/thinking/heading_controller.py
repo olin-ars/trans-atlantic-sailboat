@@ -31,8 +31,8 @@ class HeadingController:
 
         #   Set initial conditions
         r = rospy.Rate(5)
-        self.accumulated_error = 0   #   To be multiplied by I term
-        self.current_time = time.time() #   Used in integral calculation
+        self.accumulated_error = 0  # To be multiplied by I term
+        self.current_time = time.time()  # Used in integral calculation
 
         #   Set subscriber constants to None while no messages recieved yet
         self.p_term = None
@@ -50,7 +50,7 @@ class HeadingController:
 
                 #   Only start publishing rudder positions if all other nodes
                 #   are being published to
-                if not None in profile:
+                if None not in profile:
 
                     #   Publish PI-controlled rudder position
                     rudder_pos = self.calculate_rudder_pos()
@@ -59,18 +59,16 @@ class HeadingController:
                     if self.verbose:
                         print("Target rudder position: %s" % rudder_pos)
                         print("Target heading: %s   Current heading: %s" %
-                            (self.target_heading, self.current_heading))
+                              (self.target_heading, self.current_heading))
 
                 elif self.verbose:
                     print("P: %s, I: %s, CH: %s, TH: %s" % profile)
 
             r.sleep()
 
-
     def profile(self):
         """ Returns the state of the P term, I term, heading, and target heading in a tuple. """
         return (self.p_term, self.i_term, self.current_heading, self.target_heading)
-
 
     def process_target_heading(self, msg):
         """ Update target heading every time subscriber is updated """
@@ -79,12 +77,10 @@ class HeadingController:
         #   Reset accumulated error so it doesn't accumulate between heading targets
         self.accumulated_error = 0
 
-
     def process_i(self, msg):
         """ Update i term every time subscriber is updated """
         self.accumulated_error = 0
         self.i_term = msg.data
-
 
     def process_p(self, msg):
         """ Update p term every time subscriber is updated """
@@ -106,7 +102,6 @@ class HeadingController:
         """ Update current heading every time subscriber is updated """
         self.current_heading = msg.data
 
-
     def angle_diff(self, ref_angle, target_angle):
         """ Calculates the minimum distance the reference angle must change to
             reach the target angle.
@@ -118,10 +113,9 @@ class HeadingController:
 
         a_scale = 360
         differences = [target_angle - ref_angle,
-            target_angle + a_scale - ref_angle,
-            target_angle - ref_angle - a_scale]
+                       target_angle + a_scale - ref_angle,
+                       target_angle - ref_angle - a_scale]
         return min(differences, key=abs)
-
 
     def calculate_rudder_pos(self):
         """ Uses PI control to calculate a desired position for the rudder.
@@ -140,10 +134,10 @@ class HeadingController:
         self.current_time = time.time()
         self.accumulated_error += heading_difference * dt
 
-        output = p*heading_difference + i*self.accumulated_error
+        output = p * heading_difference + i * self.accumulated_error
 
         #   Change range to (0, 1) to match rudder controller
-        output = output/2.0 + 0.5
+        output = output / 2.0 + 0.5
 
         # Publish accumulated error and desired rudder position
         error_msg = Float32MultiArray(data=[self.accumulated_error, output])

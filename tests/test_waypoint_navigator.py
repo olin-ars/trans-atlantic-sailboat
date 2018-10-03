@@ -1,5 +1,6 @@
 import unittest
 from oars_gb_pkg.nodes.thinking.waypoint_navigator import WaypointNavigator
+
 try:
     from geometry_msgs.msg import Pose2D
     from oars_gb.msg import WaypointList
@@ -20,7 +21,7 @@ class TestWaypointGeneration(unittest.TestCase):
         wn = WaypointNavigator(waypoint_radius=0.5, use_ros=False)
         self.test_position.x = 1
         self.test_position.y = 1
-        test_waypoint_list = self.create_waypoint_list([(4,4), (6,6), (6,8), (8,8), (10,8), (11,11), (13,13)])
+        test_waypoint_list = self.create_waypoint_list([(4, 4), (6, 6), (6, 8), (8, 8), (10, 8), (11, 11), (13, 13)])
 
         wn.update_location(self.test_position)
         wn.update_wp_list(test_waypoint_list)

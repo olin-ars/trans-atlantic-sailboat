@@ -84,7 +84,7 @@ class Grid():
     def add_buffer(self):
         """ Blocks off cells adjacent to non-water cells. Returns nothing, replaces
             the grid with a grid with more blocked-off cells. """
-        buffered_grid = [[Cell(coords=(x, y), is_water=self.safe_distance((x, y))) \
+        buffered_grid = [[Cell(coords=(x, y), is_water=self.safe_distance((x, y)))
                           for x in range(self.width)] for y in range(self.height)]
         self.grid = buffered_grid
 
@@ -105,7 +105,7 @@ class Grid():
                 else:
                     data.extend([0] * 3)
 
-        img = Image(header=header, height=height, width=width, encoding=encoding, \
+        img = Image(header=header, height=height, width=width, encoding=encoding,
                     is_bigendian=False, step=step, data=data)
         return img
 
