@@ -59,6 +59,10 @@ source $venv_activate
 echo Installing Python requirements...
 pip install -r requirements.txt
 
+# Set up pre-commit flake8 hook
+flake8 --install-hook git
+git config --bool flake8.strict true
+
 echo Python configuration complete
 
 ##### BUILD THE CATKIN WORKSPACE #####
