@@ -1,7 +1,7 @@
 <launch>
 
     <!-- Actuators (i.e. motors) -->
-    <include file="$(find oars_gb)/launch/bringup-actuators.launch"/>
+    <include file="$(find oars_gb)/launch/actuators.launch"/>
 
     <!-- Heading control -->
     <node name="heading_controller" output="screen" pkg="oars_gb" type="heading_controller.py"/>
