@@ -65,11 +65,13 @@ class MotorController:
         pos = msg.data
         rospy.loginfo(rospy.get_caller_id() + "I heard %s", pos)
         # Make sure the value is within the accepted range of 0 to 1
-        if pos > 90:
-            pos = 90
-        elif pos < -90:
-            pos = -90
-        self.rudder.set_position(self.convert_degrees(pos), debug)
+        # TODO: Convert all rudder position messages to [-90, 90]
+        # if pos > 90:
+        #     pos = 90
+        # elif pos < -90:
+        #     pos = -90
+        # self.rudder.set_position(self.convert_degrees(pos), debug)
+        self.rudder.set_position(pos, debug)
 
     def run(self, debug=False):
         """
