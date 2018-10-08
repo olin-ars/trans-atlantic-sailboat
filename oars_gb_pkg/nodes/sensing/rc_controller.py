@@ -108,4 +108,4 @@ class SpektrumRCController:
 
 
 if __name__ == '__main__':
-    SpektrumRCController('/dev/input/by-id/usb-Horizon_Hobby_SPEKTRUM_RECEIVER_00000000001A-event-joystick').run(True)
+    SpektrumRCController('/dev/input/by-id/usb-Horizon_Hobby_SPEKTRUM_RECEIVER_00000000001A-event-joystick').run()
