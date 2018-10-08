@@ -86,7 +86,8 @@ class AStarPlanner:
             try:
                 parent = self.grid.get_cell(coord_list[-1]).parents_coords
                 coord_list.append(parent)
-            except:
+            # TODO: Specify what type of exception this should catch
+            except:  # NOQA: E722
                 print('No path found to destination coord!')
                 break
         for coord in coord_list:

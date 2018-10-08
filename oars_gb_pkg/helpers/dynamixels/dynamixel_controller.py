@@ -15,6 +15,7 @@ class DynamixelController:
         self.config = DynamixelConfig()
         self.config.baudrate = baudrate
         self.config.motor_id = device_id
+        self.current_position = None
 
         # Initialize PortHandler
         self.port_num = dynamixel.portHandler(self.config.serial_port)
@@ -151,7 +152,6 @@ class PositionMonitor(Thread):
                 self.callback(current_position)
 
             time.sleep(self.sleep_period)
-
 
 
 if __name__ == '__main__':

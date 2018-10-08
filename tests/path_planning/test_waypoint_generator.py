@@ -1,5 +1,5 @@
 import unittest
-from oars_gb_pkg.helpers.path_planning.waypoint_generator import *
+from oars_gb_pkg.helpers.path_planning.waypoint_generator import make_waypoints
 
 
 class TestWaypointGeneration(unittest.TestCase):
@@ -24,8 +24,8 @@ class TestWaypointGeneration(unittest.TestCase):
         test_4_output = [(2, 2), (2, 1), (3, 0)]
         self.assertListEqual(make_waypoints(test_4_input), test_4_output)
 
-        test_5_input = [(1, 1), (2, 1), (2, 2), (1, 2), (0, 2), (0, 1), (0, 0), (1, 0), (2, 0), (3, 0), (3, 1), (3, 2), (3, 3),
-             (2, 3), (1, 3), (0, 3)]
+        test_5_input = [(1, 1), (2, 1), (2, 2), (1, 2), (0, 2), (0, 1), (0, 0), (1, 0), (2, 0), (3, 0), (3, 1),
+                        (3, 2), (3, 3), (2, 3), (1, 3), (0, 3)]
         test_5_output = [(2, 1), (2, 2), (0, 2), (0, 0), (3, 0), (3, 3), (0, 3)]
         self.assertListEqual(make_waypoints(test_5_input), test_5_output)
 

@@ -1,5 +1,5 @@
 import unittest
-from oars_gb_pkg.nodes.sensing.airmar import *
+from oars_gb_pkg.nodes.sensing.airmar import AirmarParser
 from geometry_msgs.msg import Pose2D
 
 

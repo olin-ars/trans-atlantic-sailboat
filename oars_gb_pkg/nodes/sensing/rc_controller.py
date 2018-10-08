@@ -71,18 +71,23 @@ class SpektrumRCController:
 
                 if not event.type == 0:
                     if event.code == 4:  # Three-position switch for setting control mode
-                        print(event.value)
+                        if debug:
+                            print('Event', event.code, ':', event.value)
+                        mode = None
                         if event.value == 42:
                             mode = 2  # Fully autonomous
                         elif event.value == 149:
                             mode = 1  # Autonomous sail control, manual rudder control
                         elif event.value == 213:
                             mode = 0  # Fully manual remote control
+                        elif event.value == 589825:
+                            print('Momentary lever position change')
 
-                        if debug:
-                            print('Switched control mode to ' + str(mode))
+                        if mode is not None:
+                            if debug:
+                                print('Switched control mode to ' + str(mode))
 
-                        self.mode_pub.publish(UInt8(data=mode))
+                            self.mode_pub.publish(UInt8(data=mode))
 
                     if event.code == 1 and self.mode == FULL_MANUAL:
                         position = self.normalize(event.value, 1700, 0)

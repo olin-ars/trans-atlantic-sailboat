@@ -89,7 +89,8 @@ class WaypointNavigator:
         :param wp_list_msg: a list of tuples specifying GPS coordinates in the form (long, lat)
         :type wp_list_msg: WaypointList
         """
-        self.wp_list = deque(zip(wp_list_msg.longitudes.data, wp_list_msg.latitudes.data))  # Use queue of tuples for waypoints
+        # Use queue of tuples for waypoints
+        self.wp_list = deque(zip(wp_list_msg.longitudes.data, wp_list_msg.latitudes.data))
         self.next_wp = self.wp_list.popleft()  # Get the next waypoint
         if self.using_ros and self.latitude:  # Don't do if not using ROS or if we don't know our location yet
             self.heading_pub.publish(self.calculate_desired_heading())

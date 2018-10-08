@@ -5,8 +5,8 @@ from std_msgs.msg import Float32MultiArray, Header
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import Pose2D
 from oars_gb.msg import GridMap, WaypointList
-from oars_gb_pkg.helpers.path_planning import *
-from oars_gb_pkg.helpers.path_planning.waypoint_generator import *
+from oars_gb_pkg.helpers.path_planning import AStarPlanner, Grid
+from oars_gb_pkg.helpers.path_planning.waypoint_generator import gps_coords_to_cell, cell_to_gps_coords, make_waypoints
 
 
 class PathPlanner:
@@ -113,7 +113,7 @@ class PathPlanner:
         """
         # Make sure we have the info we need to plan a path
         if self.current_pos is None or self.goal_pos is None \
-            or self.wind_angle is None or self.grid is None:
+                or self.wind_angle is None or self.grid is None:
             return
 
         # Plan a path based on the map and our current location and environment conditions
@@ -122,7 +122,8 @@ class PathPlanner:
         width = self.grid.width
         height = self.grid.height
         # Find an open starting and ending coordinate
-        start = gps_coords_to_cell(self.current_pos, self.grid_lower_left_coord, self.grid_upper_right_coord, width, height)
+        start = gps_coords_to_cell(self.current_pos, self.grid_lower_left_coord, self.grid_upper_right_coord, width,
+                                   height)
         end = gps_coords_to_cell(self.goal_pos, self.grid_lower_left_coord, self.grid_upper_right_coord, width, height)
         # Are these lines necessary? Shouldn't we require that the start and end be on water?
         while not self.grid.get_cell(start).is_water:
@@ -137,7 +138,8 @@ class PathPlanner:
         gps_waypoints_lat = []
         gps_waypoints_lon = []
         for point in waypoints:
-            gps_point = cell_to_gps_coords(point, self.grid_lower_left_coord, self.grid_upper_right_coord, width, height)
+            gps_point = cell_to_gps_coords(point, self.grid_lower_left_coord, self.grid_upper_right_coord, width,
+                                           height)
             gps_waypoints_lat.append(gps_point[1])
             gps_waypoints_lon.append(gps_point[0])
 
