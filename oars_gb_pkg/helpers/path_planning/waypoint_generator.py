@@ -47,7 +47,6 @@ def _find_difference(path, x):
     """
 
     x_curr, y_curr = path[x]
-
     x_next, y_next = path[x+1]
 
     change_x = x_next - x_curr
@@ -85,7 +84,7 @@ def cell_to_gps_coords(coord, p1, p2, cols, rows):
     p2_x, p2_y = p2
 
     dx = p2_x.data - p1_x.data
-    dy = p2_y.data - p1_y.data
+    dy = p1_y.data - p2_y.data
 
     row_width = dy / rows
     col_width = dx / cols
@@ -96,7 +95,7 @@ def cell_to_gps_coords(coord, p1, p2, cols, rows):
     dy_gps_pos = (row_width * y_val) + (0.5 * row_width)
 
     x_gps_coord = p1_x.data + dx_gps_pos
-    y_gps_coord = p1_y.data + dy_gps_pos
+    y_gps_coord = p2_y.data + dy_gps_pos
 
     return x_gps_coord, y_gps_coord
 
@@ -118,7 +117,7 @@ def gps_coords_to_cell(coord, p1, p2, cols, rows):
     p2_x, p2_y = p2
 
     dx = p2_x.data - p1_x.data
-    dy = p2_y.data - p1_y.data
+    dy = p1_y.data - p2_y.data
 
     f = rows / dy
     g = cols / dx
@@ -126,7 +125,7 @@ def gps_coords_to_cell(coord, p1, p2, cols, rows):
     x_pos, y_pos = coord
 
     x_pos -= p1_x.data
-    y_pos -= p1_y.data
+    y_pos -= p2_y.data
 
     cell_x = int(g * x_pos)
     cell_y = int(f * y_pos)

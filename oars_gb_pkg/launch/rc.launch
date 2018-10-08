@@ -6,4 +6,7 @@
     <!-- Motor controllers, etc -->
     <include file="$(find oars_gb)/launch/actuators.launch"/>
 
+    <!-- Publish telemetry statistics -->
+    <include file="$(find oars_gb)/launch/telemetry.launch"/>
+
 </launch>

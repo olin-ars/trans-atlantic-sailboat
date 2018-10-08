@@ -1,12 +1,18 @@
 class AStarPlanner:
+
+    DIRECTIONS = [(0, 1), (-1, 1), (-1, 0), (-1, -1), (0, -1), (1, -1), (1, 0), (1, 1)]
+    COSTS = [10, 1, 2, 1, 3, 1, 2, 1]
+
     def __init__(self, grid):
         self.grid = grid
         self.open_list = []
         self.closed_list = []
+        self.wind_direction = 0
 
-    def plan(self, start_coord, destination_coord):
+    def plan(self, start_coord, destination_coord, wind_angle):
         """ Updates cells' g, h, f, and parent coordinates until the destination
             square is found. """
+        self.wind_direction = int(((wind_angle + 22.5) % 360) / 45)
         self.open_list = [start_coord]
         self.closed_list = []
         cell_s = self.grid.get_cell(start_coord)
@@ -47,15 +53,15 @@ class AStarPlanner:
     def get_open_adj_coords(self, coords):
         """ returns list of valid coords that are adjacent to the argument,
             open, and not in the closed list. """
-        directions = [(1, 0), (0, 1), (-1, 0), (0, -1), (1, 1), (1, -1), (-1, -1), (-1, 1)]
-        all_adj = [self.grid.add_coords(coords, d) for d in directions]
-        all_costs = [2, 3, 2, 10, 1, 1, 1, 1]
+        all_adj = [self.grid.add_coords(coords, d) for d in self.DIRECTIONS]
+        w = self.wind_direction
+        costs_shifted = self.COSTS[w:] + self.COSTS[:w]
         in_bounds = [self.is_valid(c) for c in all_adj]
         costs = []
         open_adj = []
         for i, coord in enumerate(all_adj):
             if in_bounds[i]:
-                costs.append(all_costs[i])
+                costs.append(costs_shifted[i])
                 open_adj.append(coord)
         return open_adj, costs
 
@@ -101,7 +107,6 @@ class Grid:
         """
         self.width = image.width
         self.height = image.height
-
         # Creates empty grid
         self.grid = [[Cell(coords=(x, y)) for x in range(self.width)] for y in range(self.height)]
         for y in range(self.height):
@@ -109,6 +114,8 @@ class Grid:
                 index = (y * self.width + x) * 3  # 3 is because we have RGB data
                 if image.data[index] > 128:
                     self.grid[y][x].is_water = True
+                else:
+                    self.grid[y][x].is_water = False
 
     def get_cell(self, coords):
         """ Returns the cell object at the given coordinate. """

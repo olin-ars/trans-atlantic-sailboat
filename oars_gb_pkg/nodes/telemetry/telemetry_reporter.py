@@ -245,11 +245,17 @@ class TelemetryReporter:
             if msg_type == String:
                 return msg_type(data=data)
 
-            if msg_type == Pose2D and 'x' in data and 'y' in data:
-                return Pose2D(x=float(data['x']), y=float(data['y']))
+            if msg_type == Pose2D:
+                x = float(data['x']) if 'x' in data else None
+                y = float(data['y']) if 'y' in data else None
+                theta = float(data['theta']) if 'theta' in data else None
+                return Pose2D(x=x, y=y, theta=theta)
 
         except ValueError:
             error_msg = 'Problem parsing data: ' + data + '. Supposed to be of type ' + str(msg_type)
+            self.publish_message(ERROR_TOPIC_NAME, String, error_msg)
+        except TypeError:
+            error_msg = 'Encountered a TypeError when attempting to parse: ' + data + '.'
             self.publish_message(ERROR_TOPIC_NAME, String, error_msg)
 
         return None
@@ -346,6 +352,8 @@ if __name__ == '__main__':
     tr.listen_to_topic('/boat/position', Pose2D)
     tr.listen_to_topic('/rudder_pos', Float32)
     tr.listen_to_topic('/weather/wind/rel', Pose2D)
+    tr.listen_to_topic('/weather/wind/true', Pose2D)
+    tr.listen_to_topic('/control/heading/target', Float32)
     tr.listen_to_topic('/control/heading/error_desired_rudder_pos', Pose2D)
     tr.listen_to_topic('/control/mode', UInt8)
     tr.listen_to_topic('/planning/goal_pos', Pose2D)

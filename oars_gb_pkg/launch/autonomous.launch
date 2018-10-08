@@ -3,6 +3,10 @@
     <!-- Actuators (i.e. motors) -->
     <include file="$(find oars_gb)/launch/actuators.launch"/>
 
+    <!-- Path planning -->
+    <node name="grid_map_generator" output="screen" pkg="oars_gb" type="grid_map_generator.py"/>
+    <node name="path_planner" output="screen" pkg="oars_gb" type="path_planner.py"/>
+
     <!-- Heading control -->
     <node name="heading_controller" output="screen" pkg="oars_gb" type="heading_controller.py"/>
 
