@@ -1,0 +1,5 @@
+# Install TensorFlow and Keras
+echo Installing TensorFlow and Keras...
+pip install --upgrade matplotlib  # Make sure matplotlib is up to date
+pip install tensorflow keras
+echo TensorFlow and Keras installed successfully
