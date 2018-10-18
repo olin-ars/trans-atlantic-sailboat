@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import rospy
 from sensor_msgs.msg import Image
+from std_msgs.msg import Header
 import cv2
 
 # creating ros node for the camera data
@@ -17,8 +18,7 @@ def talker():
         ret, frame = cap.read()
 
         # operations on the frame
-        luv = cv2.cvtColor(frame, cv2.COLOR_BGR2LUV)
-
+        # luv = cv2.cvtColor(frame, cv2.RGB2RGBA)
         '''
         # display the resulting frame
         cv2.imshow('frame', luv)
@@ -40,8 +40,13 @@ def image_publisher(frame):
     # create list that stores the image data
     ros_img_list = list()
 
-    #the list data will need to be stored in an image object
-    ros_img = Image()
+    # defining the image object
+    
+    header = Header()
+    height = frame.shape[0]
+    width = frame.shape[1]
+    encoding = 'bgr8'
+    step = 3 * width
 
     # turn the opencv data into ROS-readable data
     # selecting the row
@@ -53,8 +58,10 @@ def image_publisher(frame):
                 # add these values to the list
                 ros_img_list.append(comp)
 
-    ros_img.data = ros_img_list
+    #publishing the data to the image object
 
+    ros_img = Image(header=header, height=height, width=width, encoding=encoding,
+                    is_bigendian=False, step=step, data=ros_img_list)
     pub_camera.publish(ros_img)
 
 if __name__ == "__main__":
