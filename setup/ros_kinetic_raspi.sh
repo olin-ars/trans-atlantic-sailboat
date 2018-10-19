@@ -10,7 +10,8 @@ rosdep update
 rosinstall_generator ros_comm --rosdistro kinetic --deps --wet-only --tar > kinetic-ros_comm-wet.rosinstall
 wstool init src kinetic-ros_comm-wet.rosinstall
 rosdep install -y --from-paths src --ignore-src --rosdistro kinetic -r --os=debian:stretch
-sudo ./src/catkin/bin/catkin_make_isolated --install -DCMAKE_BUILD_TYPE=Release --install-space /opt/ros/kinetic -j2
+num_cpu_cores=`grep -c "^processor" /proc/cpuinfo`
+sudo ./src/catkin/bin/catkin_make_isolated --install -DCMAKE_BUILD_TYPE=Release --install-space /opt/ros/kinetic -j3
 
 source /opt/ros/kinetic/setup.bash
 echo 'source /opt/ros/kinetic/setup.bash' >> ~/.bashrc
