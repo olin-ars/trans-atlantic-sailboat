@@ -15,11 +15,6 @@ def optimum(wind,path):
     '''
         :param wind: vector representing the wind
         :param path: vector representing the path taken to reach from boat's position to the target position
-        windangle_max_R: max wind angle right side
-        windangle_max_L: max wind angle left side
-        vt_max_R: max wind speed right side
-        vt_max_L: max wind speed left side
-        alpha: turn angle
         :return:
             windangle_max_R - max boat heading on right side
             windangle_max_L - max boat heading on left side
@@ -46,7 +41,8 @@ def optimum(wind,path):
     for alpha in range(180): # This finds the optimum for the right side -- 0 --> 180 deg = right side
 
         # Test polar function
-        vb_hyp = function(windspeed,windangle + alpha)
+        vb_hyp = polar_effeciency(windangle + alpha)
+        vt_test = np.dot(vb_hyp, path)
 
         # Projecting the max speed in the direction of the path
         vt_test = np.dot(vb_hyp,path)
@@ -58,7 +54,7 @@ def optimum(wind,path):
 
     # Analogous to the right side
     for alpha in range (180,360): # This finds the optimum for the left side
-        vb_hyp = function(windspeed, windangle + alpha)
+        vb_hyp = polar_effeciency(windangle + alpha)
         vt_test = np.dot(vb_hyp, path)
         if (vt_test>vt_max_L):
             vt_max_L = vt_test
@@ -66,18 +62,47 @@ def optimum(wind,path):
 
     return vt_max_R,vt_max_L,windangle_max_R,windangle_max_L
 
-def test_get_path():
-    # testing get_path
-    B = [1, 1]
-    T = [2, 2]
-    path = get_path(B, T, 0, 0, [0, 0])
-    print(path)
+def polar_effeciency(angle):
+    # Convert angle to radians
+    angle *= np.pi/180
 
-# this runs above function to get the optimums and stores it into an array.
-maximums = optimum(wind, path)
+    # Calculate magnitude using the polar effeciency function
+    mag = (1-np.sin(angle)) * (1 + .3*np.sin(angle))/(1-0.5*np.sin(angle))
 
-#checks whether right or left is better and returns the new direction (using the hysteresis)
-def get_new_dir(vt_max_R, vt_max_L, windangle_max_R, windangle_max_L):
+    # Return vector components
+    return [mag*np.cos(angle), mag*np.sin(angle)]
 
+# checks whether right or left is better and returns the new direction (using the hysteresis)
+def get_new_dir(vt_max_R, vt_max_L, windangle_max_R, windangle_max_L, p_c, path, boat_velocity):
+    # Calculates the hysteresis factor
+    n = 1 + p_c / abs(np.sqrt(path[0] ** 2 + path[1] ** 2))
 
-new_dir = get_new_dir(*results)
+    # Calculates the current boat heading
+    boat_heading = np.arctan2(boat_velocity[1], boat_velocity[0])*np.pi/180
+
+    # Determines the new boat heading by checking the hysteresis factor
+    new_boat_heading = -1
+
+    # Choose the direction that is closest to the current boat heading
+    if abs(windangle_max_R - boat_heading) < abs(windangle_max_L - boat_heading):
+        # Choose the faster velocity
+        if vt_max_R * n < vt_max_L:
+            new_boat_heading = windangle_max_L
+        else:
+            new_boat_heading = windangle_max_R
+    else:
+        if vt_max_L * n < vt_max_R:
+            new_boat_heading = windangle_max_R
+        else:
+            new_boat_heading = windangle_max_L
+
+    return new_boat_heading
+
+def run(B, T, w):
+    path = get_path(B, T)
+    p_c = 10
+    # this runs above function to get the optimums and stores it into an array.
+    results = optimum(w, path)
+    new_dir = get_new_dir(*results, p_c, path, B)
+
+    return new_dir
