@@ -3,4 +3,4 @@ pyserial
 evdev
 socketIO-client-nexus
 flake8
-
+numpy

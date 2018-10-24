@@ -42,9 +42,9 @@ class AirmarParser:
             # Track "made good" (relative to ground and true north)
             self.track_pub = rospy.Publisher('/boat/track', Float32, queue_size=10)
             # Relative wind speed (knots) and direction
-            self.rel_wind_pub = rospy.Publisher('/weather/wind/rel', Pose2D, queue_size=5)
+            self.rel_wind_pub = rospy.Publisher('/sensors/airmar/wind/rel', Pose2D, queue_size=5)
             # True wind speed and direction
-            self.true_wind_pub = rospy.Publisher('/weather/wind/true', Pose2D, queue_size=5)
+            self.true_wind_pub = rospy.Publisher('/sensors/airmar/wind/true', Pose2D, queue_size=5)
             # Error strings we want to see
             self.error_pub = rospy.Publisher('/logging/airmar/errors', String, queue_size=5)
             # Full message publisher for debugging
