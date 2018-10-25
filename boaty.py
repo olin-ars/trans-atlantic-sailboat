@@ -3,13 +3,13 @@ import numpy as np
 from short_course import run
 from random import randint
 
-windDir = 270
-boatCurrDir = 90
-boatDesDir = 90
-targetList = [(0, 200), (200, 0), (0, -200), (-200, 0), (0, 200)]
+windDir = 0  #wind source direction
+boatCurrDir = 0
+boatDesDir = 0
+targetList = [(200, 0), (0, -200), (-200, 0), (0, 200), (200, 0)]
 wind = Turtle()
 wind.pu()
-wind.setpos(0, 400)
+wind.setpos(250, 0)
 boat = Turtle()
 boat.setheading(boatCurrDir)
 
@@ -37,11 +37,11 @@ for targetPos in targetList:
     print("Heading to ", targetPos)
     while boat.distance(targetPos) > 5:
         windVector = [np.cos(windDir), np.sin(windDir)]
-        boatNewDir = get_heading(boatPos, targetPos, windVector)
+        boatNewDir = run(boat.position(), targetPos, windVector)
         #boatCurrDir = adjustTo(boatCurrDir, boatNewDir)
 
         boat.setheading(boatNewDir)
-        boat.forward(2)
+        boat.forward(4)
         boat.position()
 
         windDir += randint(-4, 4)
