@@ -9,7 +9,7 @@ boatDesDir = 0
 targetList = [(200, 0), (0, -200), (-200, 0), (0, 200), (200, 0)]
 wind = Turtle()
 wind.pu()
-wind.setpos(250, 0)
+wind.setpos(400, 0)
 boat = Turtle()
 boat.setheading(boatCurrDir)
 
