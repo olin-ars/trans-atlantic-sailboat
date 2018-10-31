@@ -75,7 +75,7 @@ def polar_effeciency(angle):
 # checks whether right or left is better and returns the new direction (using the hysteresis)
 def get_new_dir(vt_max_R, vt_max_L, windangle_max_R, windangle_max_L, p_c, path, boat_heading):
     # Calculates the hysteresis factor
-    n = 1 + (p_c / (abs(np.sqrt(path[0] ** 2 + path[1] ** 2)))
+    n = 1 + (p_c / (abs(np.sqrt(path[0] ** 2 + path[1] ** 2))))
 
     # Calculates the current boat heading
     # boat_heading = np.arctan2(boat_velocity[1], boat_velocity[0])*(180/np.pi)
