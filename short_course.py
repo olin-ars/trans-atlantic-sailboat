@@ -103,7 +103,7 @@ def get_new_dir(vt_max_R, vt_max_L, windangle_max_R, windangle_max_L, p_c, path,
 
 def run(Bp, Bh, T, w):
     path = get_path(Bp, T)
-    p_c = 10
+    p_c = 20
     # this runs above function to get the optimums and stores it into an array.
     a,b,c,d = optimum(w, path)
     new_dir = get_new_dir(a,b,c,d, p_c, path, Bh)
