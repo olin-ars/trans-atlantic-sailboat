@@ -36,7 +36,7 @@ def optimum(windangle,path):
     vt_max_R = 0
     vt_max_L = 0
 
-    # Initialize the counger
+    # Initialize the counter
     alpha = 0
     for alpha in range(180): # This finds the optimum for the right side -- 0 --> 180 deg = right side
 
@@ -50,7 +50,7 @@ def optimum(windangle,path):
         # Check if this velocity is the new max
         if(vt_test>vt_max_R):
             vt_max_R = vt_test
-            windangle_max_R = windangle + alpha
+            windangle_max_R = (windangle + alpha) % 360
 
     # Analogous to the right side
     for alpha in range (180,360): # This finds the optimum for the left side
@@ -58,7 +58,7 @@ def optimum(windangle,path):
         vt_test = np.dot(vb_hyp, path)
         if (vt_test>vt_max_L):
             vt_max_L = vt_test
-            windangle_max_L = windangle + alpha
+            windangle_max_L = (windangle + alpha) % 360
 
     return vt_max_R,vt_max_L,windangle_max_R,windangle_max_L
 
@@ -76,6 +76,7 @@ def polar_effeciency(angle):
 def get_new_dir(vt_max_R, vt_max_L, windangle_max_R, windangle_max_L, p_c, path, boat_heading):
     # Calculates the hysteresis factor
     n = 1 + (p_c / (abs(np.sqrt(path[0] ** 2 + path[1] ** 2))))
+    print(n)
 
     # Calculates the current boat heading
     # boat_heading = np.arctan2(boat_velocity[1], boat_velocity[0])*(180/np.pi)
@@ -84,7 +85,9 @@ def get_new_dir(vt_max_R, vt_max_L, windangle_max_R, windangle_max_L, p_c, path,
     #new_boat_heading = -1
 
     # Choose the direction that is closest to the current boat heading
-    if abs(windangle_max_R - boat_heading) < abs(windangle_max_L - boat_heading):
+    R_diff = 180 - abs(abs(windangle_max_R - boat_heading) - 180);
+    L_diff = 180 - abs(abs(windangle_max_L - boat_heading) - 180);
+    if R_diff < L_diff:
         # Choose the faster velocity
         if vt_max_R * n < vt_max_L:
             new_boat_heading = windangle_max_L
@@ -102,7 +105,7 @@ def run(Bp, Bh, T, w):
     path = get_path(Bp, T)
     p_c = 10
     # this runs above function to get the optimums and stores it into an array.
-    results = optimum(w, path)
-    new_dir = get_new_dir(*results, p_c, path, Bh)
+    a,b,c,d = optimum(w, path)
+    new_dir = get_new_dir(a,b,c,d, p_c, path, Bh)
 
     return new_dir
