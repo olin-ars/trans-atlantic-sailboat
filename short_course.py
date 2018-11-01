@@ -41,9 +41,7 @@ def optimum(windangle,path):
     for alpha in range(180): # This finds the optimum for the right side -- 0 --> 180 deg = right side
 
         # Test polar function
-        vb_hyp = polar_effeciency(windangle + alpha)
-        vt_test = np.dot(vb_hyp, path)
-
+        vb_hyp = polar_effeciency(windangle, alpha)
         # Projecting the max speed in the direction of the path
         vt_test = np.dot(vb_hyp,path)
 
@@ -53,8 +51,8 @@ def optimum(windangle,path):
             windangle_max_R = (windangle + alpha) % 360
 
     # Analogous to the right side
-    for alpha in range (180,360): # This finds the optimum for the left side
-        vb_hyp = polar_effeciency(windangle + alpha)
+    for alpha in range (-180,0): # This finds the optimum for the left side
+        vb_hyp = polar_effeciency(windangle, alpha)
         vt_test = np.dot(vb_hyp, path)
         if (vt_test>vt_max_L):
             vt_max_L = vt_test
@@ -62,12 +60,13 @@ def optimum(windangle,path):
 
     return vt_max_R,vt_max_L,windangle_max_R,windangle_max_L
 
-def polar_effeciency(angle):
+def polar_effeciency(windangle, alpha):
     # Convert angle to radians
-    angle *= np.pi/180
+    angle = windangle + alpha
+    alpha *= np.pi/180
 
     # Calculate magnitude using the polar effeciency function
-    mag = (1-np.sin(angle)) * (1 + .3*np.sin(angle))/(1-0.5*np.sin(angle))
+    mag = (1-np.cos(alpha)) * (1 + .3*np.cos(alpha))/(1-0.5*np.cos(alpha))
 
     # Return vector components
     return [mag*np.cos(angle), mag*np.sin(angle)]
@@ -76,15 +75,14 @@ def polar_effeciency(angle):
 def get_new_dir(vt_max_R, vt_max_L, windangle_max_R, windangle_max_L, p_c, path, boat_heading):
     # Calculates the hysteresis factor
     n = 1 + (p_c / (abs(np.sqrt(path[0] ** 2 + path[1] ** 2))))
-    print(n)
-
-    # Calculates the current boat heading
-    # boat_heading = np.arctan2(boat_velocity[1], boat_velocity[0])*(180/np.pi)
+    # print(n)
 
     # Determines the new boat heading by checking the hysteresis factor
-    #new_boat_heading = -1
+    # new_boat_heading = -1
 
     # Choose the direction that is closest to the current boat heading
+    # R_diff = abs(windangle_max_R - boat_heading)
+    # L_diff = abs(windangle_max_L - boat_heading)
     R_diff = 180 - abs(abs(windangle_max_R - boat_heading) - 180);
     L_diff = 180 - abs(abs(windangle_max_L - boat_heading) - 180);
     if R_diff < L_diff:
