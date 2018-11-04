@@ -64,6 +64,7 @@ def polar_effeciency(windangle, alpha):
     # Convert angle to radians
     angle = windangle + alpha
     alpha *= np.pi/180
+    angle *= np.pi/180
 
     # Calculate magnitude using the polar effeciency function
     mag = (1-np.cos(alpha)) * (1 + .3*np.cos(alpha))/(1-0.5*np.cos(alpha))
