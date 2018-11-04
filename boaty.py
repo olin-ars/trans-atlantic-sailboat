@@ -1,5 +1,6 @@
 from turtle import *
 import numpy as np
+from time import sleep
 from short_course import run
 from random import randint
 
@@ -8,7 +9,7 @@ boatCurrDir = 0
 targetList = [(0, 120), (120, 120), (0, 0), (120, 0), (120, -120), (0, -120), (0, 0)]
 wind = Turtle()
 wind.pu()
-wind.setpos(250, 250)
+wind.setpos(250*np.cos(windDir*np.pi/180), 250*np.sin(windDir*np.pi/180))
 boat = Turtle()
 boat.setheading(boatCurrDir)
 
@@ -20,7 +21,8 @@ for targetPos in targetList:
 
         boat.setheading(boatNewDir)
         boat.forward(4)
+        sleep(0.05)
         boat.position()
 
         #windDir += randint(-4, 4)
-        wind.setheading(-windDir)
+        wind.setheading(windDir+180)
