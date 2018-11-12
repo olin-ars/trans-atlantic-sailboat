@@ -1,8 +1,4 @@
-# The First Trans-Atlantic Sailboat
-
-After a year-long hiatus from our original mission, OARS is excited to refocus our attention on what we originally set
-out to accomplish: be the first team *in the world* to design and build a boat that successfully sails itself across
-the Atlantic Ocean autonomously.
+# The First Autonomous Trans-Atlantic Sailboat
 
 To this day, no team has successfully crossed the Atlantic Ocean in an autonomous sailboat. Teams such as
 [UBC's Transatlantic Challenge](http://ubctransat.com/) team and [SCOUT Transatlantic](http://gotransat.com/) have made
@@ -30,8 +26,7 @@ PyCharm installation path (this will accept the default).
 
 # Current State
 
-Currently, our team is on-schedule to test our code once the weather warms up. Status updates can
-be found on our [Mediium blog](http://medium.com/oars).
+Status updates can be found on our [Mediium blog](http://medium.com/oars).
 
 ## Architecture Overview
 
