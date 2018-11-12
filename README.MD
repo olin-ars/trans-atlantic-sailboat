@@ -26,7 +26,7 @@ PyCharm installation path (this will accept the default).
 
 # Current State
 
-Status updates can be found on our [Mediium blog](http://medium.com/oars).
+Status updates can be found on our [Medium blog](http://medium.com/oars).
 
 ## Architecture Overview
 
