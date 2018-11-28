@@ -158,7 +158,7 @@ class TelemetryReporter:
         elif msg_type == WaypointList:
             points = []
             for lat, long in zip(msg.latitudes.data, msg.longitudes.data):
-                points.append({'lat': lat, 'long': long})
+                points.append({'lat': lat, 'lon': long})
             return points
 
         return None
