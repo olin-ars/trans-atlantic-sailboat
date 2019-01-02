@@ -3,4 +3,7 @@
     <node name="airmar" pkg="oars_gb" type="airmar.py"/>
     <node name="airmar_wind_filter" pkg="oars_gb" type="wind_filter.py"/>
 
+    <!-- Adafruit BNO055 9-DOF IMU -->
+    <node name="adafruit_imu" pkg="oars_gb" type="adafruit_imu.py"/>
+
 </launch>
