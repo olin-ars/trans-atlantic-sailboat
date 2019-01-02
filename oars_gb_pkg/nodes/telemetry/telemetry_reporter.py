@@ -157,8 +157,8 @@ class TelemetryReporter:
 
         elif msg_type == WaypointList:
             points = []
-            for lat, long in zip(msg.latitudes.data, msg.longitudes.data):
-                points.append({'lat': lat, 'lon': long})
+            for lat, lon in zip(msg.latitudes.data, msg.longitudes.data):
+                points.append({'lat': lat, 'lon': lon})
             return points
 
         return None
@@ -230,7 +230,7 @@ class TelemetryReporter:
         :return: a ROS message containing the data
         """
         try:
-            # TODO Ints and arrays of ints
+            # TODO Signed ints and arrays of ints
 
             if msg_type == UInt8 \
                     or msg_type == UInt16:  # Integers
