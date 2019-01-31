@@ -91,18 +91,18 @@ def calc_obstacle_penalties(velocities,obstacles,r_min,r_max):
     return velocities
 
 
- def find_maximums(vt_max_R, vt_max_L, windangle_max_R, windangle_max_L, velocities):
-     for angle in len(velocities):
-         velocity = velocities[angle]
-         if angle < 180:
-             if velocity > vt_max_R:
+def find_maximums(vt_max_R, vt_max_L, windangle_max_R, windangle_max_L, velocities):
+    for angle in len(velocities):
+        velocity = velocities[angle]
+        if angle < 180:
+            if velocity > vt_max_R:
                  vt_max_R = velocity
                  windangle_max_R = angle
         else:
             if velocity > vt_max_L:
                 vt_max_L = velocity
                 windangle_max_L = angle -360
-     return vt_max_R, vt_max_L, windangle_max_R, windangle_max_L
+    return vt_max_R, vt_max_L, windangle_max_R, windangle_max_L
 
 # checks whether right or left is better and returns the new direction (using the hysteresis)
 def get_new_dir(vt_max_R, vt_max_L, windangle_max_R, windangle_max_L, p_c, path, boat_heading):
