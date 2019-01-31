@@ -7,7 +7,6 @@ Read the paper here: https://www.dora.dmu.ac.uk/bitstream/handle/2086/7364/thesi
 """
 import numpy as np
 
-
 class ShortCoursePlanner:
 
     @staticmethod
@@ -29,7 +28,13 @@ class ShortCoursePlanner:
         # Return vector components as a numpy array
         return np.array([mag * np.cos(angle), mag * np.sin(angle)])
 
-    def _get_optima(self, wind_angle, path):
+    def initialize_velocities(self):
+        velocities = []
+        for i in range(360):
+            velocities.append(-1)
+        return velocities
+
+    def _get_optima(self, wind_angle, path, velocities, obstacles, r_min, r_max):
         """
         Finds the maximum velocity and angle that can be achieved for every possible new heading for the boat to
         determine the most optimal headings on the port and starboard sides of the boat.
@@ -43,6 +48,7 @@ class ShortCoursePlanner:
             vt_max_l - max velocity on left side
         """
 
+        print("Getting optima")
         # Initializing the right side and left side optimum wind angles
         windangle_max_r = wind_angle
         windangle_max_l = wind_angle
@@ -64,6 +70,8 @@ class ShortCoursePlanner:
             # Projecting the max speed in the direction of the path
             vt_test = np.dot(vb_hyp, path)
 
+            velocities[alpha] = vt_test
+
             # Check if this velocity is the new max
             if vt_test > vt_max_r:
                 vt_max_r = vt_test
@@ -73,11 +81,41 @@ class ShortCoursePlanner:
         for alpha in range(-180, 0):
             vb_hyp = self._get_polar_efficiency(wind_angle, alpha)
             vt_test = np.dot(vb_hyp, path)
+            velocities[alpha + 360] = vt_test
             if vt_test > vt_max_l:
                 vt_max_l = vt_test
                 windangle_max_l = (wind_angle + alpha) % 360
 
+        velocities = self.calc_obstacle_penalties(velocities, obstacles, r_min, r_max)
+        vt_max_r, vt_max_l, windangle_max_r, windangle_max_l = self.find_maximums(vt_max_r, vt_max_l, windangle_max_r,
+                                                                             windangle_max_l, velocities)
+
+        # print("vt_max_r: ", vt_max_r)
+        # print("vt_max_l: ", vt_max_l)
+        # print("wind angle max r: ", windangle_max_r)
+        # print("wind angle max l: ", windangle_max_l)
+
         return vt_max_r, vt_max_l, windangle_max_r, windangle_max_l
+
+    def calc_obstacle_penalties(self, velocities, obstacles, r_min, r_max):
+        for obstacle in obstacles:
+            angle = obstacle[1]
+            qb = min(1, max(0, (obstacle[0] - r_min) / (r_max - r_min)))
+            velocities[angle] = velocities[angle] * qb
+        return velocities
+
+    def find_maximums(self, vt_max_R, vt_max_L, windangle_max_R, windangle_max_L, velocities):
+        for angle in range(len(velocities)):
+            velocity = velocities[angle]
+            if angle < 180:
+                if velocity > vt_max_R:
+                    vt_max_R = velocity
+                    windangle_max_R = angle
+            else:
+                if velocity > vt_max_L:
+                    vt_max_L = velocity
+                    windangle_max_L = angle - 360
+        return vt_max_R, vt_max_L, windangle_max_R, windangle_max_L
 
     def _get_best_dir(self, vt_max_R, vt_max_L, windangle_max_R, windangle_max_L, p_c, path, boat_heading):
         """
@@ -92,6 +130,8 @@ class ShortCoursePlanner:
         :param boat_heading: the boat's heading, relative to 0 (with 0 as east)
         :return: the new boat direction and speed
         """
+
+        print("Determining best direction based on hysteresis")
 
         # Calculates the hysteresis factor
         n = 1 + (p_c / (abs(np.sqrt(path[0] ** 2 + path[1] ** 2))))
@@ -113,7 +153,7 @@ class ShortCoursePlanner:
 
         return new_boat_heading
 
-    def run(self, b_p, b_h, t, w):
+    def run(self, b_p, b_h, t, w, velocities, obstacles, r_min, r_max):
         """
         This method directs the boat by using the boat's position and the target position to calculate the path
         and comparing the boat's heading to the wind heading to determine the most efficient way for the boat to get
@@ -126,15 +166,18 @@ class ShortCoursePlanner:
         :return new_dir - the boat's new direction as a numpy array
         """
 
+        print("Starting planner")
+
         # Calculates the path of the boat
         path = np.array(t) - np.array(b_p)
+        print("Path: ", path)
 
         # The beating parameter (which controls the length of a tack)
         p_c = 20
 
         # Runs the optimum function and compares the optima returned to determine the best direction for
         # boat to go
-        a, b, c, d = self._get_optima(w, path)
+        a, b, c, d = self._get_optima(w, path, velocities, obstacles, r_min, r_max)
         new_dir = self._get_best_dir(a, b, c, d, p_c, path, b_h)
 
         return new_dir
@@ -166,10 +209,19 @@ if __name__ == '__main__':
     boat = Turtle()
     boat.setheading(boatCurrDir)
 
+    r_min = 60
+    r_max = 120
+    obstacles = [(50, 0), (50, 1), (50, 2), (50, 3), (50, 4), (50, 5)]
+
     for targetPos in targetList:
+        print("Current Target: ", targetPos)
         while boat.distance(targetPos) > 5:
             planner = ShortCoursePlanner()
-            boatNewDir = planner.run(boat.position(), boat.heading(), targetPos, windDir)
+
+            velocities = planner.initialize_velocities()
+            # print("Initialized Velocities: ", velocities)
+
+            boatNewDir = planner.run(boat.position(), boat.heading(), targetPos, windDir, velocities, obstacles, r_min, r_max)
 
             boat.setheading(boatNewDir)
             boat.forward(4)
