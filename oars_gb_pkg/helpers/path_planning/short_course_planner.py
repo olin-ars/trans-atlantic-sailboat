@@ -48,7 +48,7 @@ class ShortCoursePlanner:
             vt_max_l - max velocity on left side
         """
 
-        print("Getting optima")
+        # print("Getting optima")
         # Initializing the right side and left side optimum wind angles
         windangle_max_r = wind_angle
         windangle_max_l = wind_angle
@@ -86,9 +86,17 @@ class ShortCoursePlanner:
                 vt_max_l = vt_test
                 windangle_max_l = (wind_angle + alpha) % 360
 
+        orig_vt_max_r, orig_vt_max_l, orig_windangle_max_r, orig_windangle_max_l = self.find_maximums(vt_max_r,
+                                                                            vt_max_l, windangle_max_r,
+                                                                                windangle_max_l, velocities)
+        print("Original best on right: ", orig_vt_max_r, orig_windangle_max_r)
+        print("Original best on left: ", orig_vt_max_l, orig_windangle_max_l)
+
         velocities = self.calc_obstacle_penalties(velocities, obstacles, r_min, r_max)
         vt_max_r, vt_max_l, windangle_max_r, windangle_max_l = self.find_maximums(vt_max_r, vt_max_l, windangle_max_r,
                                                                              windangle_max_l, velocities)
+        print("New best on right: ", vt_max_r, windangle_max_r)
+        print("New best on left: ", vt_max_l, windangle_max_l)
 
         # print("vt_max_r: ", vt_max_r)
         # print("vt_max_l: ", vt_max_l)
@@ -100,13 +108,20 @@ class ShortCoursePlanner:
     def calc_obstacle_penalties(self, velocities, obstacles, r_min, r_max):
         for obstacle in obstacles:
             angle = obstacle[1]
+            # print("Original velocity: ", velocities[angle])
             qb = min(1, max(0, (obstacle[0] - r_min) / (r_max - r_min)))
+            # print("Angle: ", angle)
             velocities[angle] = velocities[angle] * qb
+            # print("Velocity: ", velocities[angle])
+            velocities[angle + 1] = velocities[angle + 1]*qb/2
+            velocities[angle - 1] = velocities[angle - 1]*qb/2
+            # print("Updated velocity: ", velocities[angle])
         return velocities
 
     def find_maximums(self, vt_max_R, vt_max_L, windangle_max_R, windangle_max_L, velocities):
         for angle in range(len(velocities)):
             velocity = velocities[angle]
+
             if angle < 180:
                 if velocity > vt_max_R:
                     vt_max_R = velocity
@@ -131,7 +146,7 @@ class ShortCoursePlanner:
         :return: the new boat direction and speed
         """
 
-        print("Determining best direction based on hysteresis")
+        # print("Determining best direction based on hysteresis")
 
         # Calculates the hysteresis factor
         n = 1 + (p_c / (abs(np.sqrt(path[0] ** 2 + path[1] ** 2))))
@@ -166,11 +181,11 @@ class ShortCoursePlanner:
         :return new_dir - the boat's new direction as a numpy array
         """
 
-        print("Starting planner")
+        # print("Starting planner")
 
         # Calculates the path of the boat
         path = np.array(t) - np.array(b_p)
-        print("Path: ", path)
+        # print("Path: ", path)
 
         # The beating parameter (which controls the length of a tack)
         p_c = 20
@@ -198,7 +213,8 @@ if __name__ == '__main__':
 
     # Initializes the boat's current direction, target path
     boatCurrDir = 0
-    targetList = [(0, 120), (120, 120), (0, 0), (120, 0), (120, -120), (0, -120), (0, 0)]
+    targetList = [(0, 120)]  # (120, 120), (0, 0), (120, 0), (120, -120), (0, -120), (0, 0)]
+
 
     # Draws the wind vector and positions/orients it correctly
     wind = Turtle()
@@ -211,7 +227,40 @@ if __name__ == '__main__':
 
     r_min = 60
     r_max = 120
-    obstacles = [(50, 0), (50, 1), (50, 2), (50, 3), (50, 4), (50, 5)]
+    obstacles = []
+    rad = 10
+    while (rad < 60):
+        angle = 90
+        while (angle < 100):
+            obstacles.append((rad, angle))
+            angle += 2
+        rad += 5
+
+    print(obstacles)
+    # obstacles = [(10, 88), (10, 86), (10, 84), (10, 82), (10, 80),
+    #             (50, 90), (50, 92), (50, 94), (50, 96), (50, 98),
+    #              (40, 90), (40, 92), (40, 94), (40, 96), (40, 98),
+    #             (30, 90), (30, 92), (30, 94), (30, 96), (30, 98),]
+    obstacle_drawer = Turtle()
+    obstacle_drawer.pencolor("red")
+    obstacle_drawer.fillcolor("red")
+
+    index = 0
+    while index < len(obstacles):
+        obstacle = obstacles[index]
+        # print("angle: ", obstacle[1])
+        angle = np.radians(obstacle[1])
+        rad = obstacle[0]
+
+        obstacle_drawer.pu()
+        obstacle_drawer.setpos(rad*np.cos(angle), rad*np.sin(angle))
+
+        obstacle_drawer.pd()
+        obstacle_drawer.begin_fill()
+        obstacle_drawer.circle(1)
+        obstacle_drawer.end_fill()
+
+        index += 1
 
     for targetPos in targetList:
         print("Current Target: ", targetPos)
