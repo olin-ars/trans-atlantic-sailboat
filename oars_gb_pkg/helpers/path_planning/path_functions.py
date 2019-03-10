@@ -1,11 +1,16 @@
+from turtle import Turtle
+
 import numpy as np
+from turtle import *
 import math
+from time import sleep
 
 
 def calc_obstacle_penalties(velocities, angles):
     for angle in angles:
         velocities[angle] = -100
     return velocities
+
 
 def find_maximums(velocities):
     vt_max_r = -10000
@@ -29,6 +34,7 @@ def find_maximums(velocities):
 
     print("max windangle r, max windangle l: ", windangle_max_r, windangle_max_l)
     return vt_max_r, vt_max_l, windangle_max_r, windangle_max_l
+
 
 def _get_best_dir(vt_max_r, vt_max_l, windangle_max_r, windangle_max_l, p_c, path, boat_heading):
     """
@@ -65,6 +71,96 @@ def _get_best_dir(vt_max_r, vt_max_l, windangle_max_r, windangle_max_l, p_c, pat
             new_boat_heading = windangle_max_l
 
     return new_boat_heading
+
+
+def target_draw_circle(target_drawer, target_pos):
+    target_drawer.pu()
+    target_drawer.goto(target_pos)
+    target_drawer.pd()
+    target_drawer.begin_fill()
+    target_drawer.circle(10)
+    target_drawer.end_fill()
+    target_drawer.hideturtle()
+
+
+def obstacle_draw(obstacles, target_list):
+    obstacle_drawer = Turtle()
+    obstacle_drawer.pencolor("red")
+    obstacle_drawer.speed(0)
+    for obstacle in obstacles:
+        start_angle = obstacle[2]
+        end_angle = obstacle[1]
+        for angle in range(start_angle, end_angle):
+            obstacle_drawer.pu()
+            obstacle_drawer.goto(0, 0)
+            obstacle_drawer.seth(angle)
+            obstacle_drawer.pd()
+            obstacle_drawer.fd(120)
+
+    target_drawer = Turtle()
+    target_drawer.pencolor("blue")
+    target_drawer.fillcolor("blue")
+    for target_pos in target_list:
+        target_draw_circle(target_drawer, target_pos)
+    return target_drawer
+
+
+def draw_wind_boat(wind_dir, direction):
+    # Draws the wind vector and positions/orients it correctly
+    wind = Turtle()
+    wind.pu()
+    wind.setpos(250 * np.cos(wind_dir * np.pi / 180), 250 * np.sin(wind_dir * np.pi / 180))
+
+    # Draw the boat vector and orient it
+    boat = Turtle()
+    boat.setheading(direction)
+
+    return boat, wind
+
+
+def recalculate_path(wind_angle, angle_ranges, original_path, planner):
+    max_velocity = 0
+    max_abs_angle = 0
+    magnitude = lambda arr: math.sqrt(arr[0] ** 2 + arr[1] ** 2)
+
+    for angle_range in angle_ranges:
+        max_angle = angle_range[1] + wind_angle
+        min_angle = angle_range[0] + wind_angle
+
+        max_ang_velocity = planner._get_polar_efficiency(wind_angle, max_angle)
+        print("max_ang_velocity: ", magnitude(max_ang_velocity))
+        min_ang_velocity = planner._get_polar_efficiency(wind_angle, min_angle)
+        print("min ang velocity: ", magnitude(min_ang_velocity))
+
+        if magnitude(max_ang_velocity) > max_velocity:
+            max_velocity = magnitude(max_ang_velocity)
+            max_abs_angle = max_angle - wind_angle
+        if magnitude(min_ang_velocity) > max_velocity:
+            max_velocity = magnitude(min_ang_velocity)
+            max_abs_angle = min_angle - wind_angle
+
+    print("max abs angle: ", max_abs_angle)
+    path_distance = magnitude(original_path)
+    print("path distance: ", path_distance)
+    optimal_path = np.array((2 * path_distance * math.cos(max_abs_angle * math.pi / 180),
+                             2 * path_distance * math.sin(max_abs_angle * math.pi / 180)))
+    print("optimal path: ", optimal_path)
+    dot_product = np.dot(optimal_path, original_path)
+    print("dot_product: ", dot_product)
+    optimal_path_distance = magnitude(optimal_path)
+    projected_path = ((dot_product / optimal_path_distance ** 2) * optimal_path[0],
+                      (dot_product / optimal_path_distance ** 2) * optimal_path[1])
+
+    return projected_path
+
+
+def update_boat(boat, wind, dir):
+    boat.setheading(dir)
+    boat.forward(4)
+    sleep(0.05)
+    boat.position()
+    wind.setheading(dir + 180)
+
 
 class ShortCoursePlanner:
 
