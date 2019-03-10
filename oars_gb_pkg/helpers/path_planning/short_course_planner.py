@@ -6,38 +6,6 @@ angles that a boat can turn, and then compares the efficiencies to determine the
 Read the paper here: https://www.dora.dmu.ac.uk/bitstream/handle/2086/7364/thesis-optimized-300dpi.pdf
 """
 import numpy as np
-import math
-
-
-def calc_obstacle_penalties(velocities, angles):
-    for angle in angles:
-        velocities[angle] = -100
-    return velocities
-
-
-def find_maximums(velocities):
-    vt_max_r = -10000
-    vt_max_l = -10000
-
-    windangle_max_l = 0
-    windangle_max_r = 0
-    for angle in range(-90, 99):
-        velocity = velocities[angle]
-        print("(angle, velocity): ", angle, velocity)
-
-        if velocity > vt_max_r:
-            vt_max_r = velocity
-            windangle_max_r = angle
-
-    for angle in range(90, 270):
-        print("(angle, velocity): ", angle, velocity)
-        if velocity > vt_max_l:
-            vt_max_l = velocity
-            windangle_max_l = angle
-
-    print("max windangle r, max windangle l: ", windangle_max_r, windangle_max_l)
-    return vt_max_r, vt_max_l, windangle_max_r, windangle_max_l
-
 
 def _get_best_dir(vt_max_r, vt_max_l, windangle_max_r, windangle_max_l, p_c, path, boat_heading):
     """
@@ -147,9 +115,6 @@ class ShortCoursePlanner:
                 vt_max_l = vt_test
                 windangle_max_l = (wind_angle + alpha) % 360
 
-        # velocities = calc_obstacle_penalties(velocities, angles)
-        # vt_max_r, vt_max_l, windangle_max_r, windangle_max_l = find_maximums(velocities)
-        #
         return vt_max_r, vt_max_l, windangle_max_r, windangle_max_l
 
     def run(self, path, w, b_h):
@@ -158,14 +123,12 @@ class ShortCoursePlanner:
         and comparing the boat's heading to the wind heading to determine the most efficient way for the boat to get
         to its target position.
 
-        :param b_p - the boat's current position as a Python list
+        :param path - the boat's path as a vector
         :param b_h - the boat's current heading as an angle in degrees
-        :param t - the target position as a Python list
         :param w - the wind angle in degrees, relative to 0 (with 0 as east)
+
         :return new_dir - the boat's new direction as a numpy array
         """
-
-        # print("Starting planner")
 
         # Calculates the path of the boat
         # path = np.array(t) - np.array(b_p)
@@ -182,34 +145,43 @@ class ShortCoursePlanner:
         return new_dir
 
 
-'''
-Runs the sample course provided below and displays the resulting path using Turtle.
-Also uses the sleep function to simulate the passage of time (to determine how 
-fast/efficient the path actually is).
-'''
-
-
-# def initialize_velocities():
-#     velocities = []
-#     for i in range(360):
-#         velocities.append(-1000)
-#     return velocities
 
 def magnitude(arr):
+    '''
+    Calculates the magnitude of a vector with 2 components.
+    :param arr: a vector (represented as a list or numpy array)
+    :return: the magnitude of the vector
+    '''
     return math.sqrt(arr[0]**2 + arr[1]**2)
+
 def recalculate_path(wind_angle, angle_ranges, original_path):
+    '''
+    Recalculates the path to avoid obstacles.
+
+    :param wind_angle: the angle of the wind relative to 0 degrees (with east as 0 degrees)
+    :param angle_ranges: a list of angle ranges (tuples with a min and max angle defining the range) that should be avoided (corresponding to obstacles)
+    :param original_path: the original path of the boat, represented as a vector
+
+    :return: the new path of the boat, represented as a vector
+    '''
+
+    # Determines the best path to take based on velocity & angle
     max_velocity = 0
     max_abs_angle = 0
 
     for angle_range in angle_ranges:
+        # Calculates the bounds for the given angle range & resets frame of reference to absolute frame of reference
+        # rather than with reference to the wind angle
         max_angle = angle_range[1] + wind_angle
         min_angle = angle_range[0] + wind_angle
 
+        # Calculates the hypothetical velocity of the boat on either end of the range (to help determine the best angle)
         max_ang_velocity = ShortCoursePlanner._get_polar_efficiency(ShortCoursePlanner, wind_angle, max_angle)
-        print("max_ang_velocity: ", magnitude(max_ang_velocity))
+        # print("max_ang_velocity: ", magnitude(max_ang_velocity))
         min_ang_velocity = ShortCoursePlanner._get_polar_efficiency(ShortCoursePlanner, wind_angle, min_angle)
-        print("min ang velocity: ", magnitude(min_ang_velocity))
+        # print("min ang velocity: ", magnitude(min_ang_velocity))
 
+        # Updates the best velocity found thus far
         if magnitude(max_ang_velocity) > max_velocity:
             max_velocity = magnitude(max_ang_velocity)
             max_abs_angle = max_angle - wind_angle
@@ -217,19 +189,32 @@ def recalculate_path(wind_angle, angle_ranges, original_path):
             max_velocity = magnitude(min_ang_velocity)
             max_abs_angle = min_angle - wind_angle
 
-    print("max abs angle: ", max_abs_angle)
+    # print("max abs angle: ", max_abs_angle)
+    # Calculates the distance of the original path
     path_distance = magnitude(original_path)
-    print("path distance: ", path_distance)
+    # print("path distance: ", path_distance)
+
+    # Calculates the new optimal path -- a vector in the direction of the best angle found that is twice as long as the
+    # distance of the path (to make projection easier)
     optimal_path = np.array((2*path_distance*math.cos(max_abs_angle*math.pi/180), 2*path_distance*math.sin(max_abs_angle*math.pi/180)))
-    print("optimal path: ", optimal_path)
+    # print("optimal path: ", optimal_path)
+
+    # Projects the original path onto the new path
     dot_product = np.dot(optimal_path, original_path)
-    print("dot_product: ", dot_product)
+    # print("dot_product: ", dot_product)
     optimal_path_distance = magnitude(optimal_path)
+
+    # Calculates a vector representing the new path
     projected_path = ((dot_product/optimal_path_distance**2)*optimal_path[0], (dot_product/optimal_path_distance**2)*optimal_path[1])
 
     return projected_path
 
 
+'''
+Runs the sample course provided below and displays the resulting path using Turtle.
+Also uses the sleep function to simulate the passage of time (to determine how 
+fast/efficient the path actually is).
+'''
 if __name__ == '__main__':
 
     from turtle import *
@@ -252,11 +237,10 @@ if __name__ == '__main__':
     boat = Turtle()
     boat.setheading(boatCurrDir)
 
-    r_min = 60
-    r_max = 120
+    # Define the obstacles
     obstacles = [["obj", 110, 80]]
 
-
+    # Draws the obstacles
     obstacle_drawer = Turtle()
     obstacle_drawer.pencolor("red")
     obstacle_drawer.speed(0)
@@ -270,6 +254,7 @@ if __name__ == '__main__':
             obstacle_drawer.pd()
             obstacle_drawer.fd(120)
 
+    # Draws the target positions
     target_drawer = Turtle()
     target_drawer.pencolor("blue")
     target_drawer.fillcolor("blue")
@@ -284,15 +269,18 @@ if __name__ == '__main__':
 
     for targetPos in targetList:
 
+        # Calculates the original path
         original_path = np.array(targetPos) - np.array(boat.position())
         print("Original Path: ", original_path)
+
+        # Calculates the angle of the original path
         if (original_path[0] != 0):
             path_angle = math.atan(original_path[1] / original_path[0]) * 180 / math.pi
         else:
             path_angle = 90
 
+        # Identifies the angle ranges for the obstacles
         angles_ranges = []
-
         path = original_path
         if (len(obstacles) > 0):
             for obstacle in obstacles:
@@ -301,9 +289,11 @@ if __name__ == '__main__':
                     print("angle_range: ", angle_range)
                     angles_ranges.append(angle_range)
 
+            # If obstacles are found, recalculates path to avoid the identified angle rangles
             path = recalculate_path(windDir, angles_ranges, original_path)
             print("Recalculated Path: ", path)
 
+            # Recalculates the target position
             targetPos = boat.pos() + path
             print("New target pos: ", targetPos)
 
