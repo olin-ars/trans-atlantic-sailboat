@@ -29,7 +29,6 @@ if __name__ == '__main__':
     # Draw the boat; initialize boat Turtle object
     boat, wind = pf.draw_wind_boat(windDir, boatCurrDir)
 
-<<<<<<< HEAD
     # TODO: read from ROS node
     obstacles = [["obj", 110, 80]]
 
