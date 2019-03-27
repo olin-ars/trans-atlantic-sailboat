@@ -1,7 +1,5 @@
-from turtle import Turtle
-
 import numpy as np
-from turtle import *
+from turtle import Turtle
 import math
 from time import sleep
 
@@ -73,36 +71,28 @@ def _get_best_dir(vt_max_r, vt_max_l, windangle_max_r, windangle_max_l, p_c, pat
     return new_boat_heading
 
 
-def target_draw_circle(target_drawer, target_pos):
+def target_draw_circle(target_pos, target_drawer):
     target_drawer.pu()
     target_drawer.goto(target_pos)
     target_drawer.pd()
     target_drawer.begin_fill()
     target_drawer.circle(10)
     target_drawer.end_fill()
-    target_drawer.hideturtle()
+    target_drawer.ht()
 
 
-def obstacle_draw(obstacles, target_list):
-    obstacle_drawer = Turtle()
-    obstacle_drawer.pencolor("red")
-    obstacle_drawer.speed(0)
+def obstacle_draw(obstacles, target_list, obstacle_drawer_obj, target_drawer_obj):
     for obstacle in obstacles:
         start_angle = obstacle[2]
         end_angle = obstacle[1]
         for angle in range(start_angle, end_angle):
-            obstacle_drawer.pu()
-            obstacle_drawer.goto(0, 0)
-            obstacle_drawer.seth(angle)
-            obstacle_drawer.pd()
-            obstacle_drawer.fd(120)
-
-    target_drawer = Turtle()
-    target_drawer.pencolor("blue")
-    target_drawer.fillcolor("blue")
+            obstacle_drawer_obj.pu()
+            obstacle_drawer_obj.goto(0, 0)
+            obstacle_drawer_obj.seth(angle)
+            obstacle_drawer_obj.pd()
+            obstacle_drawer_obj.fd(120)
     for target_pos in target_list:
-        target_draw_circle(target_drawer, target_pos)
-    return target_drawer
+        target_draw_circle(target_pos, target_drawer_obj)
 
 
 def draw_wind_boat(wind_dir, direction):
@@ -119,19 +109,28 @@ def draw_wind_boat(wind_dir, direction):
 
 
 def recalculate_path(wind_angle, angle_ranges, original_path, planner):
+    # Initialize these at 0 so the maximum values can be calculated later
     max_velocity = 0
     max_abs_angle = 0
-    magnitude = lambda arr: math.sqrt(arr[0] ** 2 + arr[1] ** 2)
+
+    # Magnitude function (euclidian length of a vector)
+    def magnitude(arr):
+        return math.sqrt(arr[0] ** 2 + arr[1] ** 2)
 
     for angle_range in angle_ranges:
+        # for each pair of angles there is a max and a min angle value
         max_angle = angle_range[1] + wind_angle
         min_angle = angle_range[0] + wind_angle
 
+        # Velocity of boat associated with following the larger angle of the pair
         max_ang_velocity = planner._get_polar_efficiency(wind_angle, max_angle)
         print("max_ang_velocity: ", magnitude(max_ang_velocity))
+
+        # Velocity of the boat associated with following the smaller angle of the pair
         min_ang_velocity = planner._get_polar_efficiency(wind_angle, min_angle)
         print("min ang velocity: ", magnitude(min_ang_velocity))
 
+        # Update the maximum and minimum velocities
         if magnitude(max_ang_velocity) > max_velocity:
             max_velocity = magnitude(max_ang_velocity)
             max_abs_angle = max_angle - wind_angle
@@ -139,6 +138,7 @@ def recalculate_path(wind_angle, angle_ranges, original_path, planner):
             max_velocity = magnitude(min_ang_velocity)
             max_abs_angle = min_angle - wind_angle
 
+    # The
     print("max abs angle: ", max_abs_angle)
     path_distance = magnitude(original_path)
     print("path distance: ", path_distance)
@@ -236,7 +236,7 @@ class ShortCoursePlanner:
 
         # velocities = calc_obstacle_penalties(velocities, angles)
         # vt_max_r, vt_max_l, windangle_max_r, windangle_max_l = find_maximums(velocities)
-        #
+
         return vt_max_r, vt_max_l, windangle_max_r, windangle_max_l
 
     def run(self, path, w, b_h, b_p):
@@ -247,7 +247,6 @@ class ShortCoursePlanner:
 
         :param b_p - the boat's current position as a Python list
         :param b_h - the boat's current heading as an angle in degrees
-        :param t - the target position as a Python list
         :param w - the wind angle in degrees, relative to 0 (with 0 as east)
         :return new_dir - the boat's new direction as a numpy array
         """
