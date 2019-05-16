@@ -1,0 +1,18 @@
+<launch>
+ <!-- socket node -->
+  <node pkg="modelica_bridge" type="modbridge_node" name="modbridge_node">
+    <param name="port_num" value="9090" />
+    <param name="update_rate" value="30" />
+  </node>
+
+ <!-- socket node -->
+  <node pkg="oars_gb" type="sim_controller" name="controller"/>
+
+ <!-- joy node -->
+  <node respawn="true" pkg="joy"
+        type="joy_node" name="joy_springs_modros" >
+    <param name="dev" type="string" value="/dev/input/js0" />
+    <param name="deadzone" value="0.50" />
+  </node>
+
+</launch>

@@ -7,14 +7,8 @@ project(oars_gb)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS
-  roscpp
-  rospy
-  std_msgs
-  geometry_msgs
-  sensor_msgs
-  message_generation
-)
+set(CATKIN_DEPS roscpp rospy std_msgs geometry_msgs sensor_msgs modelica_bridge)
+find_package(catkin REQUIRED COMPONENTS message_generation ${CATKIN_DEPS})
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -110,7 +104,7 @@ generate_messages(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES oars_gb
-   CATKIN_DEPENDS message_runtime
+   CATKIN_DEPENDS message_runtime ${CATKIN_DEPS}
 #  DEPENDS system_lib
 )
 
@@ -202,3 +196,7 @@ include_directories(
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
+
+add_executable(sim_controller nodes/thinking/controls/sim_controller.cpp)
+target_link_libraries(sim_controller ${catkin_LIBRARIES})
+add_dependencies(sim_controller ${catkin_EXPORTED_TARGETS})
