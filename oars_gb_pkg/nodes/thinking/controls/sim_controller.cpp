@@ -51,7 +51,6 @@ void controlCallback(const modelica_bridge::ModComm::ConstPtr& feedback_val) {
  * @return none
  */
 void joyCallback(const sensor_msgs::Joy::ConstPtr& joy) {
-  modelica_bridge::ModComm springVal;
   for(int i = 0; i < 8; i++) {
     feedback[i] = 1 + joy->axes[i];
   }

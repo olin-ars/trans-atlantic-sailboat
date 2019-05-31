@@ -200,3 +200,7 @@ include_directories(
 add_executable(sim_controller nodes/thinking/controls/sim_controller.cpp)
 target_link_libraries(sim_controller ${catkin_LIBRARIES})
 add_dependencies(sim_controller ${catkin_EXPORTED_TARGETS})
+
+# add_executable(sail_controller nodes/thinking/controls/sail_controller.cpp)
+# target_link_libraries(sail_controller ${catkin_LIBRARIES})
+# add_dependencies(sail_controller ${catkin_EXPORTED_TARGETS})
